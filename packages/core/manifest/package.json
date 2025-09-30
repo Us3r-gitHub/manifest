@@ -51,7 +51,7 @@
   ],
   "scripts": {
     "create-dist": "mkdir dist",
-    "build": "rm -fr ./dist && npm run create-dist && nest build && cd ../admin && npm run build-admin-in-bundle",
+    "build": "rm -fr ./dist && npm run create-dist && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nodemon",
