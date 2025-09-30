@@ -59,25 +59,28 @@ async function bootstrap() {
     app.use(connectLiveReload())
   }
 
-  const adminPanelFolder: string = configService.get('paths').adminPanelFolder
-  app.use(express.static(adminPanelFolder))
-
   const publicFolder: string = configService.get('paths').publicFolder
   const storagePath = join(publicFolder, STORAGE_PATH)
 
   app.use(`/${STORAGE_PATH}`, express.static(storagePath))
 
-  // Redirect all requests to the client app index.
-  app.use((req, res, next) => {
-    if (
-      req.url.startsWith(`/${API_PATH}`) ||
-      req.url.startsWith(`/${STORAGE_PATH}`)
-    ) {
-      next()
-    } else {
-      res.sendFile(join(adminPanelFolder, 'index.html'))
-    }
-  })
+  
+  if (!configService.get('hideAdminPanel')) {
+    const adminPanelFolder: string = configService.get('paths').adminPanelFolder
+    app.use(express.static(adminPanelFolder))
+
+    // Redirect all requests to the client app index.
+    app.use((req, res, next) => {
+      if (
+        req.url.startsWith(`/${API_PATH}`) ||
+        req.url.startsWith(`/${STORAGE_PATH}`)
+      ) {
+        next()
+      } else {
+        res.sendFile(join(adminPanelFolder, 'index.html'))
+      }
+    })
+  }
 
   // Open API documentation.
 

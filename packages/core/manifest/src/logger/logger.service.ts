@@ -38,11 +38,14 @@ export class LoggerService {
       )
     )
     console.log('')
-    console.log(
-      chalk.green('🖥️  ') +
-        chalk.bold('Admin Panel: ') +
-        chalk.cyan.underline(adminUrl)
-    )
+
+    if (!this.configService.get('hideAdminPanel')) {
+      console.log(
+        chalk.green('🖥️  ') +
+          chalk.bold('Admin Panel: ') +
+          chalk.cyan.underline(adminUrl)
+      )
+    }
 
     if (this.configService.get('showOpenApiDocs')) {
       console.log(

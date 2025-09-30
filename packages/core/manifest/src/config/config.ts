@@ -14,6 +14,7 @@ export default (): {
   tokenSecretKey: string
   baseUrl: string
   showOpenApiDocs: boolean
+  hideAdminPanel: boolean
   paths: {
     /**
      * The folder where the admin panel is built.
@@ -78,6 +79,8 @@ export default (): {
     showOpenApiDocs:
       process.env.OPEN_API_DOCS === 'true' ||
       process.env.NODE_ENV !== 'production',
+    hideAdminPanel:
+      process.env.HIDE_ADMIN_PANEL === 'true',
 
     paths: {
       adminPanelFolder:
