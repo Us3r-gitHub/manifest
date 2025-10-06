@@ -32,7 +32,8 @@ import { EventModule } from './event/event.module'
 
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions'
 import config from './config/config'
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
+import { ThrottlerModule } from '@nestjs/throttler'
+import { TenantBasedThrottlerGuard } from './tenant-based-throttler-guard'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -144,7 +145,7 @@ import { APP_GUARD } from '@nestjs/core'
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
+      useClass: TenantBasedThrottlerGuard
     }
   ]
 })

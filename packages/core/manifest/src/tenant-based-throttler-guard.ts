@@ -2,18 +2,16 @@ import { Injectable } from '@nestjs/common'
 import { ThrottlerGuard, ThrottlerRequest } from '@nestjs/throttler'
 import { Request } from 'express'
 
-// See: https://github.com/nestjs/throttler/blob/v6.4.0/src/throttler.guard.ts#L148-L200
 @Injectable()
 export class TenantBasedThrottlerGuard extends ThrottlerGuard {
+  // See: https://github.com/nestjs/throttler/blob/v6.4.0/src/throttler.guard.ts#L148-L200
   /**
    * Throttles incoming HTTP requests.
    * All the outgoing requests will contain RFC-compatible RateLimit headers.
    * @see https://tools.ietf.org/id/draft-polli-ratelimit-headers-00.html#header-specifications
    * @throws {ThrottlerException}
    */
-  protected async handleRequest(
-    requestProps: ThrottlerRequest
-  ): Promise<boolean> {
+  async handleRequest(requestProps: ThrottlerRequest): Promise<boolean> {
     const {
       context,
       limit,
@@ -24,8 +22,22 @@ export class TenantBasedThrottlerGuard extends ThrottlerGuard {
       generateKey
     } = requestProps
 
+    // ```bash
+    // $ code -g .\src\manifest\services\manifest.service.ts:25:32
+    // ```
+    let manifestId = 'manifest',
+      throttlerName = throttler.name
+
     // Here we start to check the amount of requests being done against the ttl.
     const { req, res } = this.getRequestResponse(context)
+
+    // Return early if the `tenantId` in the request does not match the throttler's tenant.
+    const { tenantId } = (req as Request).params
+    if (tenantId) {
+      ;[manifestId, throttlerName] = throttler.name.split('_')
+      if (tenantId !== manifestId) return true
+    }
+
     const ignoreUserAgents =
       throttler.ignoreUserAgents ?? this.commonOptions.ignoreUserAgents
     // Return early if the current user agent should be ignored.
@@ -53,7 +65,7 @@ export class TenantBasedThrottlerGuard extends ThrottlerGuard {
     // Throw an error when the user reached their limit.
     if (isBlocked) {
       res.header(
-        `Retry-After${getThrottlerSuffix(throttler.name)}`,
+        `Retry-After${getThrottlerSuffix(throttlerName)}`,
         timeToBlockExpire
       )
       await this.throwThrottlingException(context, {
@@ -69,17 +81,17 @@ export class TenantBasedThrottlerGuard extends ThrottlerGuard {
     }
 
     res.header(
-      `${this.headerPrefix}-Limit${getThrottlerSuffix(throttler.name)}`,
+      `${this.headerPrefix}-Limit${getThrottlerSuffix(throttlerName)}`,
       limit
     )
     // We're about to add a record so we need to take that into account here.
     // Otherwise the header says we have a request left when there are none.
     res.header(
-      `${this.headerPrefix}-Remaining${getThrottlerSuffix(throttler.name)}`,
+      `${this.headerPrefix}-Remaining${getThrottlerSuffix(throttlerName)}`,
       Math.max(0, limit - totalHits)
     )
     res.header(
-      `${this.headerPrefix}-Reset${getThrottlerSuffix(throttler.name)}`,
+      `${this.headerPrefix}-Reset${getThrottlerSuffix(throttlerName)}`,
       timeToExpire
     )
 
