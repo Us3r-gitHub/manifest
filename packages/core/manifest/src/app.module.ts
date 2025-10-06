@@ -1,8 +1,10 @@
+import * as path from 'path'
+
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { AppManifest, DatabaseConnection } from '@repo/types'
+import { AppManifest, AppSettings, DatabaseConnection } from '@repo/types'
 import { EntitySchema } from 'typeorm'
 import { AuthModule } from './auth/auth.module'
 import { CrudModule } from './crud/crud.module'
@@ -64,15 +66,26 @@ import { APP_GUARD } from '@nestjs/core'
             break
           default:
             dbConnection = 'sqlite'
-            databaseConfig = configService.get('database').sqlite
+            databaseConfig = configService.get('database').sqlite()
             break
         }
 
-        await manifestService.loadManifest(
-          configService.get('paths').manifestFile
-        )
-        const entities: EntitySchema[] =
-          entityLoaderService.loadEntities(dbConnection)
+        // TODO-Next: Implement dynamic connection for multiple DB
+        const entities: EntitySchema[] = []
+
+        const manifestFiles: string[] = configService.get('manifestFiles')
+        for (const manifestFile of manifestFiles) {
+          const manifestId = path.basename(path.dirname(manifestFile))
+
+          manifestService.setManifestId(manifestId)
+
+          await manifestService.loadManifest(manifestFile)
+
+          const appManifestEntities =
+            entityLoaderService.loadEntities(dbConnection)
+
+          entities.push(...appManifestEntities)
+        }
 
         return Object.assign(databaseConfig, { entities })
       },
@@ -84,13 +97,22 @@ import { APP_GUARD } from '@nestjs/core'
         configService: ConfigService,
         manifestService: ManifestService
       ) => {
-        await manifestService.loadManifest(
-          configService.get('paths').manifestFile
-        )
+        const rateLimits: AppSettings['rateLimits'] = []
 
-        const appManifest: AppManifest = manifestService.getAppManifest()
+        // TODO-Next: Handle case multi-tenant or not
+        const manifestFiles: string[] = configService.get('manifestFiles')
+        for (const manifestFile of manifestFiles) {
+          const manifestId = path.basename(path.dirname(manifestFile))
 
-        return appManifest.settings.rateLimits || []
+          manifestService.setManifestId(manifestId)
+
+          const appManifest: AppManifest =
+            await manifestService.loadManifest(manifestFile)
+
+          rateLimits.push(...(appManifest.settings.rateLimits || []))
+        }
+
+        return rateLimits
       },
       inject: [ConfigService, ManifestService, EntityLoaderService]
     }),
