@@ -109,7 +109,13 @@ import { APP_GUARD } from '@nestjs/core'
           const appManifest: AppManifest =
             await manifestService.loadManifest(manifestFile)
 
-          rateLimits.push(...(appManifest.settings.rateLimits || []))
+          const appManifestRateLimits = (
+            appManifest.settings.rateLimits || []
+          ).map((rateLimit) => ({
+            ...rateLimit,
+            name: `${manifestId}_${rateLimit.name || 'default'}`
+          }))
+          rateLimits.push(...appManifestRateLimits)
         }
 
         return rateLimits
