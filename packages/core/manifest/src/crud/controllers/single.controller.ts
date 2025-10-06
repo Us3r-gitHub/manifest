@@ -22,13 +22,9 @@ import { HookInterceptor } from '../../hook/hook.interceptor'
 import { SINGLES_PATH } from '../../constants'
 import { MiddlewareInterceptor } from '../../middleware/middleware.interceptor'
 
-/**
- * Controller for single type entities.
- */
 @UseGuards(PolicyGuard, IsSingleGuard)
-@UseInterceptors(HookInterceptor)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
-@Controller(SINGLES_PATH)
+@Controller(`:tenantId/${SINGLES_PATH}`)
 export class SingleController {
   constructor(
     private readonly authService: AuthService,

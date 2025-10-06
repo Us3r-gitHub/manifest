@@ -16,8 +16,8 @@ import { Rule } from '../policy/decorators/rule.decorator'
 import { PolicyGuard } from '../policy/policy.guard'
 import { IsDbEmptyGuard } from './guards/is-db-empty.guard'
 
-@Controller('auth')
 @UseGuards(PolicyGuard)
+@Controller(':tenantId/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -31,8 +31,8 @@ export class AuthController {
     return this.authService.createToken(entity, signupUserDto)
   }
 
-  @Post('admins/signup')
   @UseGuards(IsDbEmptyGuard)
+  @Post('admins/signup')
   public async signupAdmin(
     @Body() signupUserDto: SignupAuthenticableEntityDto
   ): Promise<{
@@ -41,8 +41,8 @@ export class AuthController {
     return this.authService.signup('admins', signupUserDto, true)
   }
 
-  @Post(':entity/signup')
   @Rule('signup')
+  @Post(':entity/signup')
   public async signup(
     @Param('entity') entity: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto

@@ -6,7 +6,7 @@ import { ManifestService } from '../services/manifest.service'
 import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 import { EntityManifestService } from '../services/entity-manifest.service'
 
-@Controller('manifest')
+@Controller('/:tenantId/manifest')
 export class ManifestController {
   constructor(
     private manifestService: ManifestService,
@@ -20,7 +20,10 @@ export class ManifestController {
    * @returns The app name.
    */
   @Get('app-name')
-  async getAppName(): Promise<{ name: string }> {
+  async getAppName(
+    @Param('tenantId') tenantId: string
+  ): Promise<{ name: string }> {
+    this.manifestService.setManifestId(tenantId)
     const manifest = this.manifestService.getAppManifest({
       fullVersion: false
     })
@@ -34,7 +37,10 @@ export class ManifestController {
    */
   @Get()
   @UseGuards(IsAdminGuard)
-  async getAppManifest(): Promise<AppManifest> {
+  async getAppManifest(
+    @Param('tenantId') tenantId: string
+  ): Promise<AppManifest> {
+    this.manifestService.setManifestId(tenantId)
     return this.manifestService.getAppManifest({ fullVersion: true })
   }
 

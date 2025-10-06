@@ -17,7 +17,7 @@ import { Rule } from '../policy/decorators/rule.decorator'
 import { HandlerService } from '../handler/handler.service'
 
 @UseGuards(PolicyGuard)
-@Controller(ENDPOINTS_PATH)
+@Controller(`:tenantId/${ENDPOINTS_PATH}`)
 export class EndpointController {
   constructor(private readonly handlerService: HandlerService) {}
 

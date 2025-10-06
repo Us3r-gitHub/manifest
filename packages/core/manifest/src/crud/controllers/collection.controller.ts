@@ -26,17 +26,17 @@ import { COLLECTIONS_PATH } from '../../constants'
 import { MiddlewareInterceptor } from '../../middleware/middleware.interceptor'
 import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 
-@Controller(COLLECTIONS_PATH)
 @UseGuards(PolicyGuard, IsCollectionGuard)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
+@Controller(`:tenantId/${COLLECTIONS_PATH}`)
 export class CollectionController {
   constructor(
     private readonly crudService: CrudService,
     private readonly authService: AuthService
   ) {}
 
-  @Get('/:entity')
   @Rule('read')
+  @Get('/:entity')
   async findAll(
     @Param('entity') entitySlug: string,
     @Query() queryParams: { [key: string]: string | string[] },
@@ -60,8 +60,8 @@ export class CollectionController {
    *
    * @returns The select options for the entity.
    */
-  @Get(':entity/select-options')
   @UseGuards(IsAdminGuard)
+  @Get(':entity/select-options')
   findSelectOptions(
     @Param('entity') entitySlug: string,
     @Query() queryParams: { [key: string]: string | string[] }
@@ -72,8 +72,8 @@ export class CollectionController {
     })
   }
 
-  @Get(':entity/:id')
   @Rule('read')
+  @Get(':entity/:id')
   async findOne(
     @Param('entity') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -90,8 +90,8 @@ export class CollectionController {
     })
   }
 
-  @Post(':entity')
   @Rule('create')
+  @Post(':entity')
   store(
     @Param('entity') entity: string,
     @Body() entityDto: Partial<BaseEntity>
@@ -99,8 +99,8 @@ export class CollectionController {
     return this.crudService.store(entity, entityDto)
   }
 
-  @Put(':entity/:id')
   @Rule('update')
+  @Put(':entity/:id')
   put(
     @Param('entity') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -109,8 +109,8 @@ export class CollectionController {
     return this.crudService.update({ entitySlug, id, itemDto })
   }
 
-  @Patch(':entity/:id')
   @Rule('update')
+  @Patch(':entity/:id')
   patch(
     @Param('entity') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -124,8 +124,8 @@ export class CollectionController {
     })
   }
 
-  @Delete(':entity/:id')
   @Rule('delete')
+  @Delete(':entity/:id')
   delete(
     @Param('entity') entity: string,
     @Param('id', ParseUUIDPipe) id: string

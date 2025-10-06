@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common'
 import { DatabaseService } from '../services/database.service'
 
-@Controller('db')
+@Controller(':tenantId/db')
 export class DatabaseController {
   constructor(private readonly databaseService: DatabaseService) {}
 

@@ -18,7 +18,8 @@ import { LockFileService } from './lock-file.service'
 
 @Injectable()
 export class ManifestService {
-  private appManifest: AppManifest
+  private manifestId: string = 'manifest'
+  private appManifests: Record<string, AppManifest> = {}
   private loadingPromise: Promise<AppManifest> | null = null
 
   constructor(
@@ -31,6 +32,14 @@ export class ManifestService {
     private readonly lockFileService: LockFileService
   ) {}
 
+  getManifestId(): string {
+    return this.manifestId
+  }
+
+  setManifestId(manifestId: string): void {
+    this.manifestId = manifestId
+  }
+
   /**
    * Get the manifest.
    *
@@ -40,15 +49,15 @@ export class ManifestService {
    *
    **/
   getAppManifest(options?: { fullVersion?: boolean }): AppManifest {
-    if (!this.appManifest) {
+    if (!this.appManifests[this.manifestId]) {
       throw new Error('Manifest not loaded')
     }
 
     if (!options?.fullVersion) {
-      return this.hideSensitiveInformation(this.appManifest)
+      return this.hideSensitiveInformation(this.appManifests[this.manifestId])
     }
 
-    return this.appManifest
+    return this.appManifests[this.manifestId]
   }
 
   /**
@@ -109,9 +118,9 @@ export class ManifestService {
     // Add Admin entity.
     appManifest.entities.Admin = ADMIN_ENTITY_MANIFEST
 
-    this.appManifest = appManifest
+    this.appManifests[this.manifestId] = appManifest
 
-    return this.appManifest
+    return appManifest
   }
 
   /**
