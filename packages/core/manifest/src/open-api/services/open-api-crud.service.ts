@@ -17,10 +17,14 @@ import { OpenApiUtilsService } from './open-api-utils.service'
 import { isValidWhereOperator } from '../../crud/records/prop-type-valid-where-operators'
 import { getRecordKeyByValue } from '@repo/common'
 import { WHERE_OPERATOR_DESCRIPTIONS } from '../schemas/where-operator-descriptions'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class OpenApiCrudService {
-  constructor(private readonly openApiUtilsService: OpenApiUtilsService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly openApiUtilsService: OpenApiUtilsService
+  ) {}
 
   /**
    * Generates the paths for the entities. For each entity, it generates the paths for listing, creating, updating and deleting.
@@ -30,9 +34,14 @@ export class OpenApiCrudService {
    *
    */
   generateEntityPaths(
-    entityManifests: EntityManifest[]
+    entityManifests: EntityManifest[],
+    tenantId?: string
   ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {}
+
+    function removePrefixFromSlug(slug: string, tenantId?: string): string {
+      return slug.startsWith(tenantId) ? slug.slice(tenantId.length + 1) : slug
+    }
 
     // Collection paths.
     entityManifests
@@ -41,14 +50,18 @@ export class OpenApiCrudService {
           !entityManifest.single && !entityManifest.nested
       )
       .forEach((entityManifest: EntityManifest) => {
-        paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}`] = {}
-        paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/{id}`] = {}
-        paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/select-options`] = {}
+        const slug = this.configService.get('shouldPrefixTable')
+          ? removePrefixFromSlug(entityManifest.slug, tenantId)
+          : entityManifest.slug
+
+        paths[`/${COLLECTIONS_PATH}/${slug}`] = {}
+        paths[`/${COLLECTIONS_PATH}/${slug}/{id}`] = {}
+        paths[`/${COLLECTIONS_PATH}/${slug}/select-options`] = {}
 
         // Create.
         if (this.isNotForbidden(entityManifest.policies.create)) {
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}`],
+            paths[`/${COLLECTIONS_PATH}/${slug}`],
             this.generateCreatePath(entityManifest)
           )
         }
@@ -56,15 +69,15 @@ export class OpenApiCrudService {
         // Read.
         if (this.isNotForbidden(entityManifest.policies.read)) {
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}`],
+            paths[`/${COLLECTIONS_PATH}/${slug}`],
             this.generateListPath(entityManifest)
           )
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/{id}`],
+            paths[`/${COLLECTIONS_PATH}/${slug}/{id}`],
             this.generateDetailPath(entityManifest)
           )
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/select-options`],
+            paths[`/${COLLECTIONS_PATH}/${slug}/select-options`],
             this.generateListSelectOptionsPath(entityManifest)
           )
         }
@@ -72,7 +85,7 @@ export class OpenApiCrudService {
         // Update.
         if (this.isNotForbidden(entityManifest.policies.update)) {
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/{id}`],
+            paths[`/${COLLECTIONS_PATH}/${slug}/{id}`],
             this.generateUpdatePath(entityManifest),
             this.generatePatchPath(entityManifest)
           )
@@ -81,7 +94,7 @@ export class OpenApiCrudService {
         // Delete.
         if (this.isNotForbidden(entityManifest.policies.delete)) {
           Object.assign(
-            paths[`/${COLLECTIONS_PATH}/${entityManifest.slug}/{id}`],
+            paths[`/${COLLECTIONS_PATH}/${slug}/{id}`],
             this.generateDeletePath(entityManifest)
           )
         }
@@ -91,15 +104,17 @@ export class OpenApiCrudService {
     entityManifests
       .filter((entityManifest: EntityManifest) => entityManifest.single)
       .forEach((entityManifest: EntityManifest) => {
+        const slug = removePrefixFromSlug(entityManifest.slug, tenantId)
+
         // Read.
         if (this.isNotForbidden(entityManifest.policies.read)) {
-          paths[`/${SINGLES_PATH}/${entityManifest.slug}`] = {
+          paths[`/${SINGLES_PATH}/${slug}`] = {
             ...this.generateDetailPath(entityManifest, true)
           }
         }
 
         if (this.isNotForbidden(entityManifest.policies.update)) {
-          paths[`/${SINGLES_PATH}/${entityManifest.slug}`] = {
+          paths[`/${SINGLES_PATH}/${slug}`] = {
             ...this.generateDetailPath(entityManifest, true),
             ...this.generatePatchPath(entityManifest, true)
           }

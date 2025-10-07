@@ -18,6 +18,7 @@ export default (): {
   baseUrl: string
   showOpenApiDocs: boolean
   hideAdminPanel: boolean
+  shouldPrefixTable: boolean
   manifestFiles: string[]
   paths: {
     /**
@@ -91,6 +92,7 @@ export default (): {
       process.env.OPEN_API_DOCS === 'true' ||
       process.env.NODE_ENV !== 'production',
     hideAdminPanel: process.env.HIDE_ADMIN_PANEL === 'true',
+    shouldPrefixTable: process.env.SHOULD_PREFIX_TABLE === 'false',
     manifestFiles: collectManifests(manifestFolder).map((manifestId) =>
       path.join(manifestFolder, manifestId, 'manifest.yml')
     ),

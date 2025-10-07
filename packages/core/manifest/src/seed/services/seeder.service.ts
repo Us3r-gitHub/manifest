@@ -10,6 +10,7 @@ import {
 } from '@repo/types'
 
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { DataSource, EntityMetadata, QueryRunner, Repository } from 'typeorm'
 import { EntityService } from '../../entity/services/entity.service'
 
@@ -30,6 +31,8 @@ import {
 import { StorageService } from '../../storage/services/storage.service'
 import { EntityManifestService } from '../../manifest/services/entity-manifest.service'
 
+// TODO-Last: Handle multi-tenant case
+// TODO-Next: Handle case multi-tenant or not
 @Injectable()
 export class SeederService {
   seededFiles: { [key: string]: string } = {}
@@ -37,6 +40,7 @@ export class SeederService {
   records: { [key: string]: BaseEntity[] } = {}
 
   constructor(
+    private configService: ConfigService,
     private entityService: EntityService,
     private entityManifestService: EntityManifestService,
     private storageService: StorageService,
@@ -383,16 +387,21 @@ export class SeederService {
    * @param repository The repository for the Admin entity.
    */
   async seedAdmin(repository: Repository<BaseEntity>): Promise<void> {
-    console.log(
-      `✅ Seeding default admin ${DEFAULT_ADMIN_CREDENTIALS.email} with password "${DEFAULT_ADMIN_CREDENTIALS.password}"...`
-    )
+    const manifestFiles: string[] = this.configService.get('manifestFiles')
+    for (const manifestFile of manifestFiles) {
+      const manifestId = path.basename(path.dirname(manifestFile))
 
-    const admin: AuthenticableEntity =
-      repository.create() as AuthenticableEntity
-    admin.email = DEFAULT_ADMIN_CREDENTIALS.email
-    admin.password = bcrypt.hashSync(DEFAULT_ADMIN_CREDENTIALS.password, 1)
+      console.log(
+        `✅ Seeding default admin ${DEFAULT_ADMIN_CREDENTIALS.email} with password "${DEFAULT_ADMIN_CREDENTIALS.password}" for ${manifestId}...`
+      )
 
-    await repository.save(admin)
+      const admin = repository.create() as AuthenticableEntity
+      admin.email = DEFAULT_ADMIN_CREDENTIALS.email
+      admin.password = bcrypt.hashSync(DEFAULT_ADMIN_CREDENTIALS.password, 1)
+      admin.tenantId = manifestId
+
+      await repository.save(admin)
+    }
   }
 
   /**
