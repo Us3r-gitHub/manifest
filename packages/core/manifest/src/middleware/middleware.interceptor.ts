@@ -43,8 +43,9 @@ export class MiddlewareInterceptor implements NestInterceptor {
       )
 
     if (beforeRequestEvent || afterRequestEvent) {
+      const request = context.switchToHttp().getRequest()
       entityManifest = this.entityManifestService.getEntityManifest({
-        slug: context.getArgs()[0].params.entity
+        slug: request['entityTenant'] || context.getArgs()[0].params.entity
       })
     }
 

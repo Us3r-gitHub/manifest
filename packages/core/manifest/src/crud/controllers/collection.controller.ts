@@ -45,7 +45,7 @@ export class CollectionController {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     return this.crudService.findAll({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       queryParams,
       fullVersion: isAdmin
     })
@@ -64,10 +64,11 @@ export class CollectionController {
   @Get(':entity/select-options')
   findSelectOptions(
     @Param('entity') entitySlug: string,
-    @Query() queryParams: { [key: string]: string | string[] }
+    @Query() queryParams: { [key: string]: string | string[] },
+    @Req() req: Request
   ): Promise<SelectOption[]> {
     return this.crudService.findSelectOptions({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       queryParams
     })
   }
@@ -83,7 +84,7 @@ export class CollectionController {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     return this.crudService.findOne({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       id,
       queryParams,
       fullVersion: isAdmin
@@ -94,9 +95,10 @@ export class CollectionController {
   @Post(':entity')
   store(
     @Param('entity') entity: string,
-    @Body() entityDto: Partial<BaseEntity>
+    @Body() entityDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.store(entity, entityDto)
+    return this.crudService.store(req['entityTenant'] || entity, entityDto)
   }
 
   @Rule('update')
@@ -104,9 +106,14 @@ export class CollectionController {
   put(
     @Param('entity') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.update({ entitySlug, id, itemDto })
+    return this.crudService.update({
+      entitySlug: req['entityTenant'] || entitySlug,
+      id,
+      itemDto
+    })
   }
 
   @Rule('update')
@@ -114,10 +121,11 @@ export class CollectionController {
   patch(
     @Param('entity') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
     return this.crudService.update({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       id,
       itemDto,
       partialReplacement: true
@@ -128,8 +136,9 @@ export class CollectionController {
   @Delete(':entity/:id')
   delete(
     @Param('entity') entity: string,
-    @Param('id', ParseUUIDPipe) id: string
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.delete(entity, id)
+    return this.crudService.delete(req['entityTenant'] || entity, id)
   }
 }

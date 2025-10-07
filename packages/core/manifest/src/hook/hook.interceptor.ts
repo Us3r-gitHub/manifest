@@ -43,8 +43,9 @@ export class HookInterceptor implements NestInterceptor {
       )
 
     if (beforeRequestEvent || afterRequestEvent) {
+      const request = context.switchToHttp().getRequest()
       entityManifest = this.entityManifestService.getEntityManifest({
-        slug: context.getArgs()[0].params.entity
+        slug: request['entityTenant'] || context.getArgs()[0].params.entity
       })
     }
 
@@ -52,7 +53,8 @@ export class HookInterceptor implements NestInterceptor {
       // Trigger hooks.
       if (entityManifest.hooks?.[beforeRequestEvent]?.length) {
         const request = context.switchToHttp().getRequest()
-        const entitySlug: string = request.params.entity
+        const entitySlug: string =
+          request['entityTenant'] || request.params.entity
         const id: string = request.params.id
         let payload: object = request.body
 
@@ -80,7 +82,8 @@ export class HookInterceptor implements NestInterceptor {
           // Trigger hooks.
           if (entityManifest.hooks?.[afterRequestEvent]?.length) {
             const request = context.switchToHttp().getRequest()
-            const entitySlug: string = request.params.entity
+            const entitySlug: string =
+              request['entityTenant'] || request.params.entity
 
             await lastValueFrom(
               forkJoin(

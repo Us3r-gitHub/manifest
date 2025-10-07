@@ -23,17 +23,23 @@ export class AuthController {
 
   @Post(':entity/login')
   public async getToken(
+    @Param('tenantId') tenantId: string,
     @Param('entity') entity: string,
-    @Body() signupUserDto: SignupAuthenticableEntityDto
+    @Body() signupUserDto: SignupAuthenticableEntityDto,
+    @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.createToken(entity, signupUserDto)
+    return this.authService.createToken(
+      req['entityTenant'] || entity,
+      signupUserDto
+    )
   }
 
   @UseGuards(IsDbEmptyGuard)
   @Post('admins/signup')
   public async signupAdmin(
+    @Param('tenantId') tenantId: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto
   ): Promise<{
     token: string
@@ -45,11 +51,12 @@ export class AuthController {
   @Post(':entity/signup')
   public async signup(
     @Param('entity') entity: string,
-    @Body() signupUserDto: SignupAuthenticableEntityDto
+    @Body() signupUserDto: SignupAuthenticableEntityDto,
+    @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup(entity, signupUserDto)
+    return this.authService.signup(req['entityTenant'] || entity, signupUserDto)
   }
 
   @Get(':entity/me')
@@ -61,9 +68,11 @@ export class AuthController {
   }
 
   @Get('admins/default-exists')
-  public async isDefaultAdminExists(): Promise<{
+  public async isDefaultAdminExists(
+    @Param('tenantId') tenantId: string
+  ): Promise<{
     exists: boolean
   }> {
-    return this.authService.isDefaultAdminExists()
+    return this.authService.isDefaultAdminExists(tenantId)
   }
 }

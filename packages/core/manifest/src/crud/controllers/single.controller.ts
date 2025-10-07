@@ -49,15 +49,16 @@ export class SingleController {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     let singleItem: BaseEntity
+    const entity = req['entityTenant'] || entitySlug
 
     try {
       singleItem = await this.crudService.findOne({
-        entitySlug,
+        entitySlug: entity,
         fullVersion: isAdmin
       })
     } catch (e) {
       if (e instanceof NotFoundException) {
-        singleItem = await this.crudService.storeEmpty(entitySlug)
+        singleItem = await this.crudService.storeEmpty(entity)
       }
     }
 
@@ -68,19 +69,24 @@ export class SingleController {
   @Rule('update')
   put(
     @Param('entity') entitySlug: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.update({ entitySlug, itemDto })
+    return this.crudService.update({
+      entitySlug: req['entityTenant'] || entitySlug,
+      itemDto
+    })
   }
 
   @Patch(':entity')
   @Rule('update')
   patch(
     @Param('entity') entitySlug: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
     return this.crudService.update({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       itemDto,
       partialReplacement: true
     })
