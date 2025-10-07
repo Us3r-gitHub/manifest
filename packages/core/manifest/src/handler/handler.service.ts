@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { Request, Response } from 'express'
-import path from 'path'
-import fs from 'fs'
+import * as path from 'path'
+import * as fs from 'fs'
 import { ConfigService } from '@nestjs/config'
 import { BackendSDK } from '../sdk/backend-sdk'
 
@@ -30,7 +30,9 @@ export class HandlerService {
     req: Request
     res: Response
   }): Promise<unknown> {
-    const handlerFn = await this.importHandler(path)
+    // TODO-Next: Handle case multi-tenant or not
+    const { tenantId } = req.params
+    const handlerFn = await this.importHandler(path, tenantId)
 
     return handlerFn(req, res, this.sdk)
   }
@@ -40,10 +42,12 @@ export class HandlerService {
    *
    * @param handler Handler path
    */
-  async importHandler(handler: string) {
+  async importHandler(handler: string, tenantId: string) {
     // Construct the handler file path.
     const handlerPath = path.resolve(
-      this.configService.get('paths').handlersFolder,
+      this.configService.get('paths').manifestFolder,
+      tenantId,
+      'handlers',
       `${handler}.js`
     )
 
