@@ -16,4 +16,10 @@ export interface AuthenticableEntity extends BaseEntity {
    *
    * */
   password: string
+
+  /**
+   * The entity's unique tenantId. It is used for multi-tenancy app.
+   * 
+   * */
+  tenantId?: string
 }
