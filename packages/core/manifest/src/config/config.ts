@@ -18,6 +18,10 @@ export default (): {
   baseUrl: string
   showOpenApiDocs: boolean
   hideAdminPanel: boolean
+  // // TODO-Next: Handle case multi-tenant or not
+  // // Note: Multi-tenant mode uses manifestFiles and manifestFolder.
+  // // Single-tenant mode uses manifestFile for a specific manifest and handlersFolder for custom handlers.
+  // isMultiTenant: boolean
   shouldPrefixTable: boolean
   manifestFiles: string[]
   paths: {
@@ -92,6 +96,7 @@ export default (): {
       process.env.OPEN_API_DOCS === 'true' ||
       process.env.NODE_ENV !== 'production',
     hideAdminPanel: process.env.HIDE_ADMIN_PANEL === 'true',
+    // isMultiTenant: process.env.IS_MULTI_TENANT === 'false',
     shouldPrefixTable: process.env.SHOULD_PREFIX_TABLE === 'false',
     manifestFiles: collectManifests(manifestFolder).map((manifestId) =>
       path.join(manifestFolder, manifestId, 'manifest.yml')

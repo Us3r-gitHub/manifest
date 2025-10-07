@@ -126,6 +126,15 @@ import { APP_GUARD } from '@nestjs/core'
     ManifestModule,
     EntityModule,
     SeedModule,
+    // TODO-Last: Implement `router` module (https://docs.nestjs.com/recipes/router-module)
+    // See:
+    // ```bash
+    // $ code -g .\src\open-api\services\open-api.service.ts:50:7
+    // ```
+    // Crud, Auth, Endpoint
+    // ?Manifest? for Manifest Controller (should be included)
+    // ~~?OpenApi? for OpenApi/Swagger~~, setup on main when building OpenAPI
+    // ~~?Health? for Health Controller~~, not per tenant
     CrudModule,
     AuthModule,
     LoggerModule,

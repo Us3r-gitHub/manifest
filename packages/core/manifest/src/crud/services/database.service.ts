@@ -17,6 +17,7 @@ export class DatabaseService {
    * @returns true if the database is empty, false otherwise.
    * */
   async isDbEmpty(): Promise<boolean> {
+    // TODO-Last: Set correct ManifestId before getAppManifest
     const appManifest: AppManifest = this.manifestService.getAppManifest()
 
     const entities = [
