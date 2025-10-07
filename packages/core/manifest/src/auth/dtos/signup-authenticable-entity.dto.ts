@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator'
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class SignupAuthenticableEntityDto {
   @IsEmail()
@@ -8,4 +8,8 @@ export class SignupAuthenticableEntityDto {
   @IsString()
   @IsNotEmpty()
   public password: string
+
+  @IsString()
+  @IsOptional()
+  public tenantId?: string
 }

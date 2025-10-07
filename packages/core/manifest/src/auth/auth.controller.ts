@@ -30,10 +30,10 @@ export class AuthController {
   ): Promise<{
     token: string
   }> {
-    return this.authService.createToken(
-      req['entityTenant'] || entity,
-      signupUserDto
-    )
+    return this.authService.createToken(req['entityTenant'] || entity, {
+      ...signupUserDto,
+      tenantId
+    })
   }
 
   @UseGuards(IsDbEmptyGuard)
@@ -44,7 +44,11 @@ export class AuthController {
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup('admins', signupUserDto, true)
+    return this.authService.signup(
+      'admins',
+      { ...signupUserDto, tenantId },
+      true
+    )
   }
 
   @Rule('signup')
