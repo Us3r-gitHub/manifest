@@ -7,8 +7,7 @@ import * as express from 'express'
 import * as livereload from 'livereload'
 import * as fs from 'fs'
 import * as yaml from 'js-yaml'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import * as path from 'path'
 import { AppModule } from './app.module'
 import {
   API_PATH,
@@ -19,6 +18,7 @@ import {
 import { OpenApiService } from './open-api/services/open-api.service'
 import { EntityTypeService } from './entity/services/entity-type.service'
 import { EntityTsTypeInfo } from './entity/types/entity-ts-type-info'
+import { ManifestService } from './manifest/services/manifest.service'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -60,11 +60,10 @@ async function bootstrap() {
   }
 
   const publicFolder: string = configService.get('paths').publicFolder
-  const storagePath = join(publicFolder, STORAGE_PATH)
+  const storagePath = path.join(publicFolder, STORAGE_PATH)
 
   app.use(`/${STORAGE_PATH}`, express.static(storagePath))
 
-  
   if (!configService.get('hideAdminPanel')) {
     const adminPanelFolder: string = configService.get('paths').adminPanelFolder
     app.use(express.static(adminPanelFolder))
@@ -77,53 +76,65 @@ async function bootstrap() {
       ) {
         next()
       } else {
-        res.sendFile(join(adminPanelFolder, 'index.html'))
+        res.sendFile(path.join(adminPanelFolder, 'index.html'))
       }
     })
   }
 
   // Open API documentation.
-
   if (configService.get('showOpenApiDocs')) {
-    // Start with generating types.
-    const entityTypeService: EntityTypeService = app.get(EntityTypeService)
-    const entityTypeInfos: EntityTsTypeInfo[] =
-      entityTypeService.generateEntityTypeInfos()
+    // TODO-Next: Handle case multi-tenant or not
+    const manifestFiles: string[] = configService.get('manifestFiles')
+    for (const manifestFile of manifestFiles) {
+      const manifestId = path.basename(path.dirname(manifestFile))
 
-    // Write TypeScript interfaces to file.
-    fs.writeFileSync(
-      `${configService.get('paths').generatedFolder}/types.ts`,
-      entityTypeInfos
-        .map((entityTypeInfo) =>
-          entityTypeService.generateTSInterfaceFromEntityTypeInfo(
-            entityTypeInfo
+      const generatedFolder = configService.get('paths').generatedFolder
+
+      const manifestFolder = path.join(generatedFolder, manifestId)
+      if (!fs.existsSync(manifestFolder)) {
+        fs.mkdirSync(manifestFolder, { recursive: true })
+      }
+
+      const manifestService: ManifestService = app.get(ManifestService)
+      manifestService.setManifestId(manifestId)
+      await manifestService.loadManifest(manifestFile)
+
+      const entityTypeService: EntityTypeService = app.get(EntityTypeService)
+      const entityTypeInfos: EntityTsTypeInfo[] =
+        entityTypeService.generateEntityTypeInfos()
+
+      // Write TypeScript interfaces to file.
+      fs.writeFileSync(
+        `${manifestFolder}/types.ts`,
+        entityTypeInfos
+          .map((entityTypeInfo) =>
+            entityTypeService.generateTSInterfaceFromEntityTypeInfo(
+              entityTypeInfo
+            )
           )
-        )
-        .join('\n'),
-      'utf8'
-    )
-
-    const openApiService: OpenApiService = app.get(OpenApiService)
-
-    const openApiObject: OpenAPIObject =
-      openApiService.generateOpenApiObject(entityTypeInfos)
-
-    SwaggerModule.setup(API_PATH, app, openApiObject, {
-      customfavIcon: 'assets/images/open-api/favicon.ico',
-      customSiteTitle: 'Manifest API Doc',
-      customCss: readFileSync(
-        join(__dirname, '../../open-api/styles/swagger-custom.css'),
+          .join('\n'),
         'utf8'
       )
-    })
 
-    // Write OpenAPI spec to file.
-    const yamlString: string = yaml.dump(openApiObject)
-    fs.writeFileSync(
-      `${configService.get('paths').generatedFolder}/openapi.yml`,
-      yamlString,
-      'utf8'
-    )
+      const openApiService: OpenApiService = app.get(OpenApiService)
+
+      const openApiObject: OpenAPIObject =
+        openApiService.generateOpenApiObject(entityTypeInfos)
+
+      SwaggerModule.setup(`${API_PATH}/${manifestId}`, app, openApiObject, {
+        customfavIcon: 'assets/images/open-api/favicon.ico',
+        customSiteTitle: 'Manifest API Doc',
+        customCss: fs.readFileSync(
+          path.join(__dirname, '../../open-api/styles/swagger-custom.css'),
+          'utf8'
+        )
+      })
+
+      // Write OpenAPI spec to file.
+      const yamlString: string = yaml.dump(openApiObject)
+
+      fs.writeFileSync(`${manifestFolder}/openapi.yml`, yamlString, 'utf8')
+    }
   }
 
   await app.listen(configService.get('PORT') || DEFAULT_PORT)

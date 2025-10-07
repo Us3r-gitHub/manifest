@@ -33,6 +33,7 @@ export class OpenApiService {
    */
   generateOpenApiObject(entityTypeInfos: EntityTsTypeInfo[]): OpenAPIObject {
     const appManifest: AppManifest = this.manifestService.getAppManifest()
+    const manifestid = this.manifestService.getManifestId()
 
     return {
       openapi: '3.1.0',
@@ -42,13 +43,15 @@ export class OpenApiService {
       },
       servers: [
         {
-          url: `${this.configService.get('baseUrl')}/${API_PATH}`,
+          // TODO-Next: Handle case multi-tenant or not
+          url: `${this.configService.get('baseUrl')}/${API_PATH}/${manifestid}`,
           description: `${this.configService.get('nodeEnv') === 'production' ? 'Production' : 'Development'} server`
         }
       ],
       paths: {
         ...this.openApiCrudService.generateEntityPaths(
-          Object.values(appManifest.entities)
+          Object.values(appManifest.entities),
+          manifestid
         ),
         ...this.openApiManifestService.generateManifestPaths(appManifest),
         ...this.openApiAuthService.generateAuthPaths(appManifest),
