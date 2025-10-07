@@ -387,20 +387,31 @@ export class SeederService {
    * @param repository The repository for the Admin entity.
    */
   async seedAdmin(repository: Repository<BaseEntity>): Promise<void> {
-    const manifestFiles: string[] = this.configService.get('manifestFiles')
-    for (const manifestFile of manifestFiles) {
-      const manifestId = path.basename(path.dirname(manifestFile))
-
+    async function storeAdmin(manifestId?: string) {
       console.log(
-        `✅ Seeding default admin ${DEFAULT_ADMIN_CREDENTIALS.email} with password "${DEFAULT_ADMIN_CREDENTIALS.password}" for ${manifestId}...`
+        `✅ Seeding default admin ${DEFAULT_ADMIN_CREDENTIALS.email} with password "${DEFAULT_ADMIN_CREDENTIALS.password}"...`
       )
 
       const admin = repository.create() as AuthenticableEntity
       admin.email = DEFAULT_ADMIN_CREDENTIALS.email
       admin.password = bcrypt.hashSync(DEFAULT_ADMIN_CREDENTIALS.password, 1)
-      admin.tenantId = manifestId
+      if (this.configService.get('shouldPrefixTable'))
+        admin.tenantId = manifestId
 
       await repository.save(admin)
+    }
+
+    if (this.configService.get('isMultiTenant')) {
+      const manifestFiles: string[] = this.configService.get('manifestFiles')
+      for (const manifestFile of manifestFiles) {
+        const manifestId = path.basename(path.dirname(manifestFile))
+
+        console.log(`✅ Seeding Admin for ${manifestId}`)
+
+        await storeAdmin(manifestId)
+      }
+    } else {
+      await storeAdmin()
     }
   }
 

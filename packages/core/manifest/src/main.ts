@@ -82,58 +82,80 @@ async function bootstrap() {
   }
 
   // Open API documentation.
-  if (configService.get('showOpenApiDocs')) {
-    // TODO-Next: Handle case multi-tenant or not
-    const manifestFiles: string[] = configService.get('manifestFiles')
-    for (const manifestFile of manifestFiles) {
-      const manifestId = path.basename(path.dirname(manifestFile))
+  function generateOpenAPIType(destinationFolder: string): EntityTsTypeInfo[] {
+    const entityTypeService: EntityTypeService = app.get(EntityTypeService)
+    const entityTypeInfos: EntityTsTypeInfo[] =
+      entityTypeService.generateEntityTypeInfos()
 
-      const generatedFolder = configService.get('paths').generatedFolder
-
-      const manifestFolder = path.join(generatedFolder, manifestId)
-      if (!fs.existsSync(manifestFolder)) {
-        fs.mkdirSync(manifestFolder, { recursive: true })
-      }
-
-      const manifestService: ManifestService = app.get(ManifestService)
-      manifestService.setManifestId(manifestId)
-      await manifestService.loadManifest(manifestFile)
-
-      const entityTypeService: EntityTypeService = app.get(EntityTypeService)
-      const entityTypeInfos: EntityTsTypeInfo[] =
-        entityTypeService.generateEntityTypeInfos()
-
-      // Write TypeScript interfaces to file.
-      fs.writeFileSync(
-        `${manifestFolder}/types.ts`,
-        entityTypeInfos
-          .map((entityTypeInfo) =>
-            entityTypeService.generateTSInterfaceFromEntityTypeInfo(
-              entityTypeInfo
-            )
+    // Write TypeScript interfaces to file.
+    fs.writeFileSync(
+      `${destinationFolder}/types.ts`,
+      entityTypeInfos
+        .map((entityTypeInfo) =>
+          entityTypeService.generateTSInterfaceFromEntityTypeInfo(
+            entityTypeInfo
           )
-          .join('\n'),
-        'utf8'
-      )
+        )
+        .join('\n'),
+      'utf8'
+    )
 
-      const openApiService: OpenApiService = app.get(OpenApiService)
+    return entityTypeInfos
+  }
 
-      const openApiObject: OpenAPIObject =
-        openApiService.generateOpenApiObject(entityTypeInfos)
+  function generateOpenAPISpec(
+    entityTypeInfos: EntityTsTypeInfo[],
+    destinationFolder: string,
+    manifestId?: string
+  ) {
+    const openApiService: OpenApiService = app.get(OpenApiService)
 
-      SwaggerModule.setup(`${API_PATH}/${manifestId}`, app, openApiObject, {
+    const openApiObject: OpenAPIObject =
+      openApiService.generateOpenApiObject(entityTypeInfos)
+
+    SwaggerModule.setup(
+      `${API_PATH}${manifestId ? `/${manifestId}` : ''}`,
+      app,
+      openApiObject,
+      {
         customfavIcon: 'assets/images/open-api/favicon.ico',
         customSiteTitle: 'Manifest API Doc',
         customCss: fs.readFileSync(
           path.join(__dirname, '../../open-api/styles/swagger-custom.css'),
           'utf8'
         )
-      })
+      }
+    )
 
-      // Write OpenAPI spec to file.
-      const yamlString: string = yaml.dump(openApiObject)
+    // Write OpenAPI spec to file.
+    const yamlString: string = yaml.dump(openApiObject)
 
-      fs.writeFileSync(`${manifestFolder}/openapi.yml`, yamlString, 'utf8')
+    fs.writeFileSync(`${destinationFolder}/openapi.yml`, yamlString, 'utf8')
+  }
+
+  if (configService.get('showOpenApiDocs')) {
+    const generatedFolder = configService.get('paths').generatedFolder
+
+    if (configService.get('isMultiTenant')) {
+      const manifestFiles: string[] = configService.get('manifestFiles')
+      for (const manifestFile of manifestFiles) {
+        const manifestId = path.basename(path.dirname(manifestFile))
+
+        const manifestFolder = path.join(generatedFolder, manifestId)
+        if (!fs.existsSync(manifestFolder)) {
+          fs.mkdirSync(manifestFolder, { recursive: true })
+        }
+
+        const manifestService: ManifestService = app.get(ManifestService)
+        manifestService.setManifestId(manifestId)
+        await manifestService.loadManifest(manifestFile)
+
+        const openApiTypes = generateOpenAPIType(manifestFolder)
+        generateOpenAPISpec(openApiTypes, manifestFolder, manifestId)
+      }
+    } else {
+      const openApiTypes = generateOpenAPIType(generatedFolder)
+      generateOpenAPISpec(openApiTypes, generatedFolder)
     }
   }
 

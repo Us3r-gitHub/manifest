@@ -33,7 +33,9 @@ export class OpenApiService {
    */
   generateOpenApiObject(entityTypeInfos: EntityTsTypeInfo[]): OpenAPIObject {
     const appManifest: AppManifest = this.manifestService.getAppManifest()
-    const manifestid = this.manifestService.getManifestId()
+    const manifestId = this.manifestService.getManifestId()
+
+    const isMultiTenant = this.configService.get('isMultiTenant')
 
     return {
       openapi: '3.1.0',
@@ -43,15 +45,14 @@ export class OpenApiService {
       },
       servers: [
         {
-          // TODO-Next: Handle case multi-tenant or not
-          url: `${this.configService.get('baseUrl')}/${API_PATH}/${manifestid}`,
+          url: `${this.configService.get('baseUrl')}/${API_PATH}${isMultiTenant ? `/${manifestId}` : ''}`,
           description: `${this.configService.get('nodeEnv') === 'production' ? 'Production' : 'Development'} server`
         }
       ],
       paths: {
         ...this.openApiCrudService.generateEntityPaths(
           Object.values(appManifest.entities),
-          manifestid
+          manifestId
         ),
         ...this.openApiManifestService.generateManifestPaths(appManifest),
         ...this.openApiAuthService.generateAuthPaths(appManifest),

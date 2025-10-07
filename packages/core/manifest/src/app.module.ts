@@ -73,14 +73,24 @@ import { APP_GUARD } from '@nestjs/core'
 
         // TODO-Next: Implement dynamic connection for multiple DB
         const entities: EntitySchema[] = []
+        if (configService.get('isMultiTenant')) {
+          const manifestFiles: string[] = configService.get('manifestFiles')
+          for (const manifestFile of manifestFiles) {
+            const manifestId = path.basename(path.dirname(manifestFile))
 
-        const manifestFiles: string[] = configService.get('manifestFiles')
-        for (const manifestFile of manifestFiles) {
-          const manifestId = path.basename(path.dirname(manifestFile))
+            manifestService.setManifestId(manifestId)
 
-          manifestService.setManifestId(manifestId)
+            await manifestService.loadManifest(manifestFile)
 
-          await manifestService.loadManifest(manifestFile)
+            const appManifestEntities =
+              entityLoaderService.loadEntities(dbConnection)
+
+            entities.push(...appManifestEntities)
+          }
+        } else {
+          await manifestService.loadManifest(
+            configService.get('paths').manifestFile
+          )
 
           const appManifestEntities =
             entityLoaderService.loadEntities(dbConnection)
@@ -100,23 +110,32 @@ import { APP_GUARD } from '@nestjs/core'
       ) => {
         const rateLimits: AppSettings['rateLimits'] = []
 
-        // TODO-Next: Handle case multi-tenant or not
-        const manifestFiles: string[] = configService.get('manifestFiles')
-        for (const manifestFile of manifestFiles) {
-          const manifestId = path.basename(path.dirname(manifestFile))
+        if (configService.get('isMultiTenant')) {
+          const manifestFiles: string[] = configService.get('manifestFiles')
+          for (const manifestFile of manifestFiles) {
+            const manifestId = path.basename(path.dirname(manifestFile))
 
-          manifestService.setManifestId(manifestId)
+            manifestService.setManifestId(manifestId)
 
-          const appManifest: AppManifest =
-            await manifestService.loadManifest(manifestFile)
+            const appManifest: AppManifest =
+              await manifestService.loadManifest(manifestFile)
 
-          const appManifestRateLimits = (
-            appManifest.settings.rateLimits || []
-          ).map((rateLimit) => ({
-            ...rateLimit,
-            name: `${manifestId}_${rateLimit.name || 'default'}`
-          }))
-          rateLimits.push(...appManifestRateLimits)
+            const appManifestRateLimits = (
+              appManifest.settings.rateLimits || []
+            ).map((rateLimit) => ({
+              ...rateLimit,
+              name: `${manifestId}_${rateLimit.name || 'default'}`
+            }))
+            rateLimits.push(...appManifestRateLimits)
+          }
+        } else {
+          await manifestService.loadManifest(
+            configService.get('paths').manifestFile
+          )
+
+          const appManifest: AppManifest = manifestService.getAppManifest()
+
+          rateLimits.push(...(appManifest.settings.rateLimits || []))
         }
 
         return rateLimits
