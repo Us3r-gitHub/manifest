@@ -34,7 +34,7 @@ export class TenantBasedThrottlerGuard extends ThrottlerGuard {
     // Return early if the `tenantId` in the request does not match the throttler's tenant.
     const { tenantId } = (req as Request).params
     if (tenantId) {
-      ;[manifestId, throttlerName] = throttler.name.split('_')
+      ;[manifestId, throttlerName] = throttler.name.split('_tenant_')
       if (tenantId !== manifestId) return true
     }
 

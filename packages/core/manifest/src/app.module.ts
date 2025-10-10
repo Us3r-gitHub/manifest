@@ -43,6 +43,8 @@ import { APP_GUARD } from '@nestjs/core'
       envFilePath: ['.env', '.env.contribution'],
       load: [config]
     }),
+    // TODO-Next: Implement dynamic connection for multiple DB
+    // NOTE: Try to implement `Conditional module configuration` https://docs.nestjs.com/techniques/configuration#conditional-module-configuration
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule, EntityModule, ManifestModule],
       useFactory: async (
@@ -71,7 +73,6 @@ import { APP_GUARD } from '@nestjs/core'
             break
         }
 
-        // TODO-Next: Implement dynamic connection for multiple DB
         const entities: EntitySchema[] = []
         if (configService.get('isMultiTenant')) {
           const manifestFiles: string[] = configService.get('manifestFiles')
@@ -124,7 +125,7 @@ import { APP_GUARD } from '@nestjs/core'
               appManifest.settings.rateLimits || []
             ).map((rateLimit) => ({
               ...rateLimit,
-              name: `${manifestId}_${rateLimit.name || 'default'}`
+              name: `${manifestId}_tenant_${rateLimit.name || 'default'}`
             }))
             rateLimits.push(...appManifestRateLimits)
           }
