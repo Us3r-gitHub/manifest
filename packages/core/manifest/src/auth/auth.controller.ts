@@ -60,7 +60,10 @@ export class AuthController {
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup(req['entityTenant'] || entitySlug, signupUserDto)
+    return this.authService.signup(
+      req['entityTenant'] || entitySlug,
+      signupUserDto
+    )
   }
 
   @Get(':entitySlug/me')

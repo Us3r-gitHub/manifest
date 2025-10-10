@@ -52,8 +52,8 @@ export class OpenApiAuthService {
 
     authenticableEntities.forEach((entity: EntityManifest) => {
       const slug = this.configService.get('shouldPrefixTable')
-          ? this.openApiUtilsService.removePrefixFromSlug(entity.slug, tenantId)
-          : entity.slug
+        ? this.openApiUtilsService.removePrefixFromSlug(entity.slug, tenantId)
+        : entity.slug
 
       // Login.
       paths[`/auth/${slug}/login`] = {

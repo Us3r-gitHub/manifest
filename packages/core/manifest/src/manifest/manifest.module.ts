@@ -12,7 +12,7 @@ import { PolicyModule } from '../policy/policy.module'
 import { EndpointModule } from '../endpoint/endpoint.module'
 import { PropertyManifestService } from './services/property-manifest.service'
 import { LockFileService } from './services/lock-file.service'
-import { MatchEntityMiddleware } from 'src/middleware/match-entity.middleware'
+import { MatchEntityMiddleware } from '../middleware/match-entity.middleware'
 
 /**
  *

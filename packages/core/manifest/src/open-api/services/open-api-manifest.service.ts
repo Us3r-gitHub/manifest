@@ -7,10 +7,10 @@ import { OpenApiUtilsService } from './open-api-utils.service'
 
 @Injectable()
 export class OpenApiManifestService {
-    constructor(
-      private readonly configService: ConfigService,
-      private readonly openApiUtilsService: OpenApiUtilsService
-    ) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly openApiUtilsService: OpenApiUtilsService
+  ) {}
 
   /**
    * Generates the paths for the manifest endpoints.
@@ -52,16 +52,17 @@ export class OpenApiManifestService {
       }
     }
 
-    entityManifests.forEach(
-      (entityManifest: EntityManifest) => {
-        const slug = this.configService.get('shouldPrefixTable')
-          ? this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
-          : entityManifest.slug
+    entityManifests.forEach((entityManifest: EntityManifest) => {
+      const slug = this.configService.get('shouldPrefixTable')
+        ? this.openApiUtilsService.removePrefixFromSlug(
+            entityManifest.slug,
+            tenantId
+          )
+        : entityManifest.slug
 
-        paths[`/manifest/entities/${slug}`] =
-          this.generateEntityManifestPath(entityManifest)
-      }
-    )
+      paths[`/manifest/entities/${slug}`] =
+        this.generateEntityManifestPath(entityManifest)
+    })
 
     return paths
   }

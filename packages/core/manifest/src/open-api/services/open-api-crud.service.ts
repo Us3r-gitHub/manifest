@@ -48,7 +48,10 @@ export class OpenApiCrudService {
       )
       .forEach((entityManifest: EntityManifest) => {
         const slug = this.configService.get('shouldPrefixTable')
-          ? this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
+          ? this.openApiUtilsService.removePrefixFromSlug(
+              entityManifest.slug,
+              tenantId
+            )
           : entityManifest.slug
 
         paths[`/${COLLECTIONS_PATH}/${slug}`] = {}
@@ -101,7 +104,10 @@ export class OpenApiCrudService {
     entityManifests
       .filter((entityManifest: EntityManifest) => entityManifest.single)
       .forEach((entityManifest: EntityManifest) => {
-        const slug = this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
+        const slug = this.openApiUtilsService.removePrefixFromSlug(
+          entityManifest.slug,
+          tenantId
+        )
 
         // Read.
         if (this.isNotForbidden(entityManifest.policies.read)) {

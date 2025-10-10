@@ -6,7 +6,7 @@ import { AuthService } from './auth.service'
 import { ManifestModule } from '../manifest/manifest.module'
 import { DatabaseService } from '../crud/services/database.service'
 import { CrudModule } from '../crud/crud.module'
-import { MatchEntityMiddleware } from 'src/middleware/match-entity.middleware'
+import { MatchEntityMiddleware } from '../middleware/match-entity.middleware'
 
 @Module({
   imports: [

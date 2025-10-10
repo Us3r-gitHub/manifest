@@ -21,6 +21,10 @@ export class IsAdminGuard implements CanActivate {
     }: { user: AuthenticableEntity; entitySlug: string } =
       await this.authService.getUserFromRequest(req)
 
-    return !!user && tenantId === user.tenantId && entitySlug === ADMIN_ENTITY_MANIFEST.slug
+    return (
+      !!user &&
+      tenantId === user.tenantId &&
+      entitySlug === ADMIN_ENTITY_MANIFEST.slug
+    )
   }
 }

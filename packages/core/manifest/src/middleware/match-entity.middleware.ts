@@ -1,8 +1,8 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { Request, Response } from 'express'
 import { ConfigService } from '@nestjs/config'
-import { ADMIN_ENTITY_MANIFEST } from 'src/constants'
-import { ManifestService } from 'src/manifest/services/manifest.service'
+import { ADMIN_ENTITY_MANIFEST } from '../constants'
+import { ManifestService } from '../manifest/services/manifest.service'
 
 /**
  * Apply prefix to entity from the request.
@@ -11,7 +11,7 @@ import { ManifestService } from 'src/manifest/services/manifest.service'
 export class MatchEntityMiddleware implements NestMiddleware {
   constructor(
     private readonly configService: ConfigService,
-    private readonly manifestService: ManifestService,
+    private readonly manifestService: ManifestService
   ) {}
 
   use(req: Request, res: Response, next: () => void) {

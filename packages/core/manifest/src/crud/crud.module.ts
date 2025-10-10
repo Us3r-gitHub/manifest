@@ -12,7 +12,7 @@ import { SingleController } from './controllers/single.controller'
 import { HookModule } from '../hook/hook.module'
 import { AuthModule } from '../auth/auth.module'
 import { MiddlewareModule } from '../middleware/middleware.module'
-import { MatchEntityMiddleware } from 'src/middleware/match-entity.middleware'
+import { MatchEntityMiddleware } from '../middleware/match-entity.middleware'
 
 @Module({
   imports: [
