@@ -26,7 +26,9 @@ export class EntityTypeService {
    * @returns An array of EntityTypeInfo objects, each representing an entity type.
    */
   generateEntityTypeInfos(): EntityTsTypeInfo[] {
-    const appManifest: AppManifest = this.manifestService.getAppManifest()
+    const appManifest: AppManifest = this.manifestService.getAppManifest({
+      fullVersion: true
+    })
 
     const entityTsTypeInfos: EntityTsTypeInfo[] = []
 

@@ -21,9 +21,7 @@ export class ManifestController {
    */
   @Get('app-name')
   async getAppName(): Promise<{ name: string }> {
-    const manifest = this.manifestService.getAppManifest({
-      fullVersion: false
-    })
+    const manifest = this.manifestService.getAppManifest()
     return { name: manifest.name }
   }
 
