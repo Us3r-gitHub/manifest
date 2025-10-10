@@ -17,13 +17,12 @@ export class MatchEndpointMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: () => void) {
     const { tenantId } = req.params
-    this.manifestService.setManifestId(tenantId)
 
     const { endpoint, params } = this.endpointService.matchRoutePath({
       path: req.path
         .replace(`/${API_PATH}`, '')
-        .replace(`/${ENDPOINTS_PATH}`, '')
-        .replace(`/${tenantId}`, ''),
+        .replace(`/${tenantId}`, '')
+        .replace(`/${ENDPOINTS_PATH}`, ''),
       method: req.method as HttpMethod,
       endpoints: this.manifestService.getAppManifest().endpoints
     })

@@ -20,10 +20,7 @@ export class ManifestController {
    * @returns The app name.
    */
   @Get('app-name')
-  async getAppName(
-    @Param('tenantId') tenantId: string
-  ): Promise<{ name: string }> {
-    this.manifestService.setManifestId(tenantId)
+  async getAppName(): Promise<{ name: string }> {
     const manifest = this.manifestService.getAppManifest({
       fullVersion: false
     })
@@ -37,10 +34,7 @@ export class ManifestController {
    */
   @Get()
   @UseGuards(IsAdminGuard)
-  async getAppManifest(
-    @Param('tenantId') tenantId: string
-  ): Promise<AppManifest> {
-    this.manifestService.setManifestId(tenantId)
+  async getAppManifest(): Promise<AppManifest> {
     return this.manifestService.getAppManifest({ fullVersion: true })
   }
 
