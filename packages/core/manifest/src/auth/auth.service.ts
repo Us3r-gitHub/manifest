@@ -35,7 +35,7 @@ export class AuthService {
   ): Promise<{
     token: string
   }> {
-    const shouldPrefixTable = this.configService.get('shouldPrefixTable')
+    const isMultiTenant = this.configService.get('isMultiTenant')
 
     const isEntityAdmin = entitySlug === ADMIN_ENTITY_MANIFEST.slug
 
@@ -57,7 +57,7 @@ export class AuthService {
       entitySlug,
       email,
       password,
-      shouldPrefixTable && isEntityAdmin ? tenantId : undefined
+      isMultiTenant && isEntityAdmin ? tenantId : undefined
     )
 
     if (!user) {
@@ -71,7 +71,7 @@ export class AuthService {
         {
           email,
           entitySlug,
-          tenantId: shouldPrefixTable && isEntityAdmin ? tenantId : undefined
+          tenantId: isMultiTenant && isEntityAdmin ? tenantId : undefined
         },
         this.configService.get('tokenSecretKey')
       )

@@ -13,6 +13,7 @@ export class IsAdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req: Request = context.switchToHttp().getRequest()
+    const { tenantId } = req.params
 
     const {
       user,
@@ -20,6 +21,6 @@ export class IsAdminGuard implements CanActivate {
     }: { user: AuthenticableEntity; entitySlug: string } =
       await this.authService.getUserFromRequest(req)
 
-    return !!user && entitySlug === ADMIN_ENTITY_MANIFEST.slug
+    return !!user && tenantId === user.tenantId && entitySlug === ADMIN_ENTITY_MANIFEST.slug
   }
 }

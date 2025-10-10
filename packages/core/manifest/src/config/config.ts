@@ -101,7 +101,7 @@ export default (): {
       process.env.OPEN_API_DOCS === 'true' ||
       process.env.NODE_ENV !== 'production',
     hideAdminPanel: process.env.HIDE_ADMIN_PANEL === 'true',
-    isMultiTenant: process.env.IS_MULTI_TENANT === 'true',
+    isMultiTenant: process.env.SHOULD_PREFIX_TABLE === 'true' || process.env.IS_MULTI_TENANT === 'true',
     shouldPrefixTable: process.env.SHOULD_PREFIX_TABLE === 'true',
     manifestFiles: collectManifests(manifestFolder).map((manifestId) =>
       path.join(manifestFolder, manifestId, 'manifest.yml')
