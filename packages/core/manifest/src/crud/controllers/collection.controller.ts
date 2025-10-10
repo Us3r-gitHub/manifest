@@ -36,9 +36,9 @@ export class CollectionController {
   ) {}
 
   @Rule('read')
-  @Get('/:entity')
+  @Get('/:entitySlug')
   async findAll(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Query() queryParams: { [key: string]: string | string[] },
     @Req() req: Request
   ): Promise<Paginator<BaseEntity>> {
@@ -61,9 +61,9 @@ export class CollectionController {
    * @returns The select options for the entity.
    */
   @UseGuards(IsAdminGuard)
-  @Get(':entity/select-options')
+  @Get(':entitySlug/select-options')
   findSelectOptions(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Query() queryParams: { [key: string]: string | string[] },
     @Req() req: Request
   ): Promise<SelectOption[]> {
@@ -74,9 +74,9 @@ export class CollectionController {
   }
 
   @Rule('read')
-  @Get(':entity/:id')
+  @Get(':entitySlug/:id')
   async findOne(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Query() queryParams: { [key: string]: string | string[] },
     @Req() req: Request
@@ -92,19 +92,19 @@ export class CollectionController {
   }
 
   @Rule('create')
-  @Post(':entity')
+  @Post(':entitySlug')
   store(
-    @Param('entity') entity: string,
+    @Param('entitySlug') entitySlug: string,
     @Body() entityDto: Partial<BaseEntity>,
     @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.store(req['entityTenant'] || entity, entityDto)
+    return this.crudService.store(req['entityTenant'] || entitySlug, entityDto)
   }
 
   @Rule('update')
-  @Put(':entity/:id')
+  @Put(':entitySlug/:id')
   put(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() itemDto: Partial<BaseEntity>,
     @Req() req: Request
@@ -117,9 +117,9 @@ export class CollectionController {
   }
 
   @Rule('update')
-  @Patch(':entity/:id')
+  @Patch(':entitySlug/:id')
   patch(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() itemDto: Partial<BaseEntity>,
     @Req() req: Request
@@ -133,12 +133,12 @@ export class CollectionController {
   }
 
   @Rule('delete')
-  @Delete(':entity/:id')
+  @Delete(':entitySlug/:id')
   delete(
-    @Param('entity') entity: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.delete(req['entityTenant'] || entity, id)
+    return this.crudService.delete(req['entityTenant'] || entitySlug, id)
   }
 }

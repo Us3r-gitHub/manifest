@@ -35,4 +35,8 @@ export class OpenApiUtilsService {
 
     return security
   }
+
+  removePrefixFromSlug(slug: string, tenantId?: string): string {
+    return slug.startsWith(tenantId) ? slug.slice(tenantId.length + 1) : slug
+  }
 }

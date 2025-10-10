@@ -5,24 +5,31 @@ import {
   SecuritySchemeObject
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { ADMIN_ENTITY_MANIFEST } from '../../constants'
+import { ConfigService } from '@nestjs/config'
+import { OpenApiUtilsService } from './open-api-utils.service'
 
 @Injectable()
 export class OpenApiAuthService {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly openApiUtilsService: OpenApiUtilsService
+  ) {}
   /**
    * Generates the paths for the OpenAPI spec: Login, signup ang get current user for authenticable entities.
    *
-   * @param appManifest The manifest of the application.
-   *
+   * @param entityManifests The entity manifests.
+   * @param tenantId The tenantId.
    * @returns The paths.
    *
    */
-  generateAuthPaths(appManifest: AppManifest): Record<string, PathItemObject> {
+  generateAuthPaths(
+    entityManifests: EntityManifest[],
+    tenantId?: string
+  ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {}
 
     // Authenticable entities and admins.
-    const authenticableEntities: EntityManifest[] = Object.values(
-      appManifest.entities as Record<string, EntityManifest>
-    )
+    const authenticableEntities: EntityManifest[] = entityManifests
       .filter((entity: EntityManifest) => entity.authenticable)
       .concat(ADMIN_ENTITY_MANIFEST)
 
@@ -44,8 +51,12 @@ export class OpenApiAuthService {
     }
 
     authenticableEntities.forEach((entity: EntityManifest) => {
+      const slug = this.configService.get('shouldPrefixTable')
+          ? this.openApiUtilsService.removePrefixFromSlug(entity.slug, tenantId)
+          : entity.slug
+
       // Login.
-      paths[`/auth/${entity.slug}/login`] = {
+      paths[`/auth/${slug}/login`] = {
         post: {
           summary: `Login as a ${entity.nameSingular}`,
           description: `Logs in as a ${entity.nameSingular}.`,
@@ -133,7 +144,7 @@ export class OpenApiAuthService {
       }
 
       // Get current user.
-      paths[`/auth/${entity.slug}/me`] = {
+      paths[`/auth/${slug}/me`] = {
         get: {
           summary: `Get current ${entity.nameSingular}`,
           description: `Get current ${entity.nameSingular}.`,
@@ -190,7 +201,7 @@ export class OpenApiAuthService {
           (policy: PolicyManifest) => policy.access === 'public'
         )
       ) {
-        paths[`/auth/${entity.slug}/signup`] = {
+        paths[`/auth/${slug}/signup`] = {
           post: {
             summary: `Signup as ${entity.nameSingular}`,
             description: `Signs up as ${entity.nameSingular}.`,

@@ -1,18 +1,28 @@
-import { AppManifest, EntityManifest } from '@repo/types'
+import { EntityManifest } from '@repo/types'
 import { Injectable } from '@nestjs/common'
 import { PathItemObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { getForbiddenResponse } from '../utils/common-response.utils'
+import { ConfigService } from '@nestjs/config'
+import { OpenApiUtilsService } from './open-api-utils.service'
+
 @Injectable()
 export class OpenApiManifestService {
+    constructor(
+      private readonly configService: ConfigService,
+      private readonly openApiUtilsService: OpenApiUtilsService
+    ) {}
+
   /**
    * Generates the paths for the manifest endpoints.
    *
-   * @param appManifest The manifest of the application.
+   * @param entityManifests The entity manifests.
+   * @param tenantId The tenantId.
    * @returns The paths for the manifest endpoints.
    *
    */
   generateManifestPaths(
-    appManifest: AppManifest
+    entityManifests: EntityManifest[],
+    tenantId?: string
   ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {
       ['/manifest']: {
@@ -42,9 +52,13 @@ export class OpenApiManifestService {
       }
     }
 
-    Object.values(appManifest.entities).forEach(
+    entityManifests.forEach(
       (entityManifest: EntityManifest) => {
-        paths[`/manifest/entities/${entityManifest.slug}`] =
+        const slug = this.configService.get('shouldPrefixTable')
+          ? this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
+          : entityManifest.slug
+
+        paths[`/manifest/entities/${slug}`] =
           this.generateEntityManifestPath(entityManifest)
       }
     )

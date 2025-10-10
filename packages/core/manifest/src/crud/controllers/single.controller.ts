@@ -40,35 +40,35 @@ export class SingleController {
    *
    * @returns The single item of the entity.
    */
-  @Get(':entity')
+  @Get(':entitySlug')
   @Rule('read')
   async findOne(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Req() req: Request
   ): Promise<BaseEntity> {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     let singleItem: BaseEntity
-    const entity = req['entityTenant'] || entitySlug
+    const slug = req['entityTenant'] || entitySlug
 
     try {
       singleItem = await this.crudService.findOne({
-        entitySlug: entity,
+        entitySlug: slug,
         fullVersion: isAdmin
       })
     } catch (e) {
       if (e instanceof NotFoundException) {
-        singleItem = await this.crudService.storeEmpty(entity)
+        singleItem = await this.crudService.storeEmpty(entitySlug)
       }
     }
 
     return singleItem
   }
 
-  @Put(':entity')
+  @Put(':entitySlug')
   @Rule('update')
   put(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Body() itemDto: Partial<BaseEntity>,
     @Req() req: Request
   ): Promise<BaseEntity> {
@@ -78,10 +78,10 @@ export class SingleController {
     })
   }
 
-  @Patch(':entity')
+  @Patch(':entitySlug')
   @Rule('update')
   patch(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Body() itemDto: Partial<BaseEntity>,
     @Req() req: Request
   ): Promise<BaseEntity> {

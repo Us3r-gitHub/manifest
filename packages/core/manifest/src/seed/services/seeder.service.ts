@@ -31,8 +31,7 @@ import {
 import { StorageService } from '../../storage/services/storage.service'
 import { EntityManifestService } from '../../manifest/services/entity-manifest.service'
 
-// TODO-Last: Handle multi-tenant case
-// TODO-Next: Handle case multi-tenant or not
+// TODO-Next: Handle multi-tenant case for dynamic connection with multiple DB
 @Injectable()
 export class SeederService {
   seededFiles: { [key: string]: string } = {}

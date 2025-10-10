@@ -21,16 +21,16 @@ import { IsDbEmptyGuard } from './guards/is-db-empty.guard'
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post(':entity/login')
+  @Post(':entitySlug/login')
   public async getToken(
     @Param('tenantId') tenantId: string,
-    @Param('entity') entity: string,
+    @Param('entitySlug') entitySlug: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto,
     @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.createToken(req['entityTenant'] || entity, {
+    return this.authService.createToken(req['entityTenant'] || entitySlug, {
       ...signupUserDto,
       tenantId
     })
@@ -52,20 +52,20 @@ export class AuthController {
   }
 
   @Rule('signup')
-  @Post(':entity/signup')
+  @Post(':entitySlug/signup')
   public async signup(
-    @Param('entity') entity: string,
+    @Param('entitySlug') entitySlug: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto,
     @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup(req['entityTenant'] || entity, signupUserDto)
+    return this.authService.signup(req['entityTenant'] || entitySlug, signupUserDto)
   }
 
-  @Get(':entity/me')
+  @Get(':entitySlug/me')
   public async getCurrentUser(
-    @Param('entity') _entity: string,
+    @Param('entitySlug') _entity: string,
     @Req() req: Request
   ): Promise<AuthenticableEntity> {
     return (await this.authService.getUserFromRequest(req)).user

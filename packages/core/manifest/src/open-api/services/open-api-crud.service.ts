@@ -30,6 +30,7 @@ export class OpenApiCrudService {
    * Generates the paths for the entities. For each entity, it generates the paths for listing, creating, updating and deleting.
    *
    * @param entityManifests The entity manifests.
+   * @param tenantId The tenantId.
    * @returns The paths object.
    *
    */
@@ -39,10 +40,6 @@ export class OpenApiCrudService {
   ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {}
 
-    function removePrefixFromSlug(slug: string, tenantId?: string): string {
-      return slug.startsWith(tenantId) ? slug.slice(tenantId.length + 1) : slug
-    }
-
     // Collection paths.
     entityManifests
       .filter(
@@ -51,7 +48,7 @@ export class OpenApiCrudService {
       )
       .forEach((entityManifest: EntityManifest) => {
         const slug = this.configService.get('shouldPrefixTable')
-          ? removePrefixFromSlug(entityManifest.slug, tenantId)
+          ? this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
           : entityManifest.slug
 
         paths[`/${COLLECTIONS_PATH}/${slug}`] = {}
@@ -104,7 +101,7 @@ export class OpenApiCrudService {
     entityManifests
       .filter((entityManifest: EntityManifest) => entityManifest.single)
       .forEach((entityManifest: EntityManifest) => {
-        const slug = removePrefixFromSlug(entityManifest.slug, tenantId)
+        const slug = this.openApiUtilsService.removePrefixFromSlug(entityManifest.slug, tenantId)
 
         // Read.
         if (this.isNotForbidden(entityManifest.policies.read)) {

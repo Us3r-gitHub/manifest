@@ -47,20 +47,20 @@ export class ManifestController {
   /**
    * Get the entity manifest for a specific entity. This is the main descriptive file of the data structure of the entity.
    *
-   * @param slug The slug of the entity.
+   * @param entitySlug The slug of the entity.
    *
    * @returns The entity manifest.
    */
-  @Get('entities/:slug')
+  @Get('entities/:entitySlug')
   @UseGuards(IsAdminGuard)
   async getEntityManifest(
-    @Param('slug') slug: string,
+    @Param('entitySlug') entitySlug: string,
     @Req() req: Request
   ): Promise<EntityManifest> {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     return this.entityManifestService.getEntityManifest({
-      slug,
+      slug: req['entityTenant'] || entitySlug,
       fullVersion: isAdmin
     })
   }

@@ -11,13 +11,13 @@ export class MatchEntityMiddleware implements NestMiddleware {
   constructor(private readonly configService: ConfigService) {}
 
   use(req: Request, res: Response, next: () => void) {
-    const { tenantId, entity } = req.params
+    const { tenantId, entitySlug } = req.params
 
     if (
       this.configService.get('shouldPrefixTable') &&
-      entity !== ADMIN_ENTITY_MANIFEST.slug
+      entitySlug !== ADMIN_ENTITY_MANIFEST.slug
     )
-      req['entityTenant'] = `${tenantId}-${entity}`
+      req['entityTenant'] = `${tenantId}-${entitySlug}`
 
     next()
   }

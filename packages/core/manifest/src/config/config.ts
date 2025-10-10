@@ -87,7 +87,7 @@ export default (): {
         : process.cwd()
   const generatedFolder: string = path.join(projectRoot, GENERATED_FOLDER_PATH)
   const manifestFolder: string =
-    process.env.MANIFESTS_FOLDER || path.join(projectRoot, 'manifests')
+    process.env.MANIFEST_FOLDER || path.join(projectRoot, 'manifests')
 
   return {
     // General configuration.

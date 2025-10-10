@@ -54,8 +54,14 @@ export class OpenApiService {
           Object.values(appManifest.entities),
           manifestId
         ),
-        ...this.openApiManifestService.generateManifestPaths(appManifest),
-        ...this.openApiAuthService.generateAuthPaths(appManifest),
+        ...this.openApiManifestService.generateManifestPaths(
+          Object.values(appManifest.entities),
+          manifestId
+        ),
+        ...this.openApiAuthService.generateAuthPaths(
+          Object.values(appManifest.entities),
+          manifestId
+        ),
         ...this.openApiEndpointService.generateEndpointPaths(
           appManifest.endpoints
         )
