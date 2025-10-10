@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { ManifestService } from '../../manifest/services/manifest.service'
 import {
   AppManifest,
@@ -15,10 +16,14 @@ import {
   PropertyTsTypeInfo
 } from '../types/entity-ts-type-info'
 import { getDtoPropertyNameFromRelationship } from '../../../../common/src'
+import { removePrefixFromEntity } from '../utils/remove-prefix-from-entity.utils'
 
 @Injectable()
 export class EntityTypeService {
-  constructor(private readonly manifestService: ManifestService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly manifestService: ManifestService
+  ) {}
   /**
    * Generates the entity types based on the application manifest.
    *
@@ -29,20 +34,31 @@ export class EntityTypeService {
     const appManifest: AppManifest = this.manifestService.getAppManifest({
       fullVersion: true
     })
+    const manifestId = this.manifestService.getManifestId()
 
     const entityTsTypeInfos: EntityTsTypeInfo[] = []
 
     // Generate entity TS type.
-    Object.values(appManifest.entities).map((entity) =>
-      entityTsTypeInfos.push(this.generateEntityTypeInfoFromManifest(entity))
-    )
+    Object.values(appManifest.entities).map((entity) => {
+      const className = this.configService.get('shouldPrefixTable')
+        ? removePrefixFromEntity(entity.className, manifestId)
+        : entity.className
+
+      entityTsTypeInfos.push(
+        this.generateEntityTypeInfoFromManifest({ ...entity, className })
+      )
+    })
 
     // Generate CreateDTO TS type.
     Object.values(appManifest.entities)
       .filter((entity) => !entity.nested) // Nested entities cannot be created directly.
       .map((entity) => {
+        const className = this.configService.get('shouldPrefixTable')
+          ? removePrefixFromEntity(entity.className, manifestId)
+          : entity.className
+
         entityTsTypeInfos.push(
-          this.generateCreateDtoTypeInfoFromManifest(entity)
+          this.generateCreateDtoTypeInfoFromManifest({ ...entity, className })
         )
       })
 

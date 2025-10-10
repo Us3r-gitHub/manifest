@@ -18,6 +18,7 @@ import { isValidWhereOperator } from '../../crud/records/prop-type-valid-where-o
 import { getRecordKeyByValue } from '@repo/common'
 import { WHERE_OPERATOR_DESCRIPTIONS } from '../schemas/where-operator-descriptions'
 import { ConfigService } from '@nestjs/config'
+import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
 
 @Injectable()
 export class OpenApiCrudService {
@@ -48,10 +49,7 @@ export class OpenApiCrudService {
       )
       .forEach((entityManifest: EntityManifest) => {
         const slug = this.configService.get('shouldPrefixTable')
-          ? this.openApiUtilsService.removePrefixFromSlug(
-              entityManifest.slug,
-              tenantId
-            )
+          ? removePrefixFromEntity(entityManifest.slug, tenantId)
           : entityManifest.slug
 
         paths[`/${COLLECTIONS_PATH}/${slug}`] = {}
@@ -104,10 +102,7 @@ export class OpenApiCrudService {
     entityManifests
       .filter((entityManifest: EntityManifest) => entityManifest.single)
       .forEach((entityManifest: EntityManifest) => {
-        const slug = this.openApiUtilsService.removePrefixFromSlug(
-          entityManifest.slug,
-          tenantId
-        )
+        const slug = removePrefixFromEntity(entityManifest.slug, tenantId)
 
         // Read.
         if (this.isNotForbidden(entityManifest.policies.read)) {

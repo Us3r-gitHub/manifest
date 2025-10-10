@@ -3,14 +3,11 @@ import { Injectable } from '@nestjs/common'
 import { PathItemObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { getForbiddenResponse } from '../utils/common-response.utils'
 import { ConfigService } from '@nestjs/config'
-import { OpenApiUtilsService } from './open-api-utils.service'
+import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
 
 @Injectable()
 export class OpenApiManifestService {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly openApiUtilsService: OpenApiUtilsService
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   /**
    * Generates the paths for the manifest endpoints.
@@ -54,10 +51,7 @@ export class OpenApiManifestService {
 
     entityManifests.forEach((entityManifest: EntityManifest) => {
       const slug = this.configService.get('shouldPrefixTable')
-        ? this.openApiUtilsService.removePrefixFromSlug(
-            entityManifest.slug,
-            tenantId
-          )
+        ? removePrefixFromEntity(entityManifest.slug, tenantId)
         : entityManifest.slug
 
       paths[`/manifest/entities/${slug}`] =

@@ -6,14 +6,11 @@ import {
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { ADMIN_ENTITY_MANIFEST } from '../../constants'
 import { ConfigService } from '@nestjs/config'
-import { OpenApiUtilsService } from './open-api-utils.service'
+import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
 
 @Injectable()
 export class OpenApiAuthService {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly openApiUtilsService: OpenApiUtilsService
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
   /**
    * Generates the paths for the OpenAPI spec: Login, signup ang get current user for authenticable entities.
    *
@@ -52,7 +49,7 @@ export class OpenApiAuthService {
 
     authenticableEntities.forEach((entity: EntityManifest) => {
       const slug = this.configService.get('shouldPrefixTable')
-        ? this.openApiUtilsService.removePrefixFromSlug(entity.slug, tenantId)
+        ? removePrefixFromEntity(entity.slug, tenantId)
         : entity.slug
 
       // Login.
