@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { OpenApiCrudService } from './open-api-crud.service'
 import { OpenAPIObject } from '@nestjs/swagger'
 import { ManifestService } from '../../manifest/services/manifest.service'
-import { AppManifest, EntityManifest } from '@repo/types'
+import { AppManifest } from '@repo/types'
 import { OpenApiManifestService } from './open-api-manifest.service'
 import { OpenApiAuthService } from './open-api-auth.service'
 import { OpenApiEndpointService } from './open-api.endpoint.service'
@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config'
 import { API_PATH } from '../../constants'
 import { EntityTsTypeInfo } from '../../entity/types/entity-ts-type-info'
 import { OpenApiSchemaService } from './open-api-schema.service'
-import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
+import { normalizeEntities } from '../../entity/utils/normalize-entities.utils'
 
 @Injectable()
 export class OpenApiService {
@@ -38,27 +38,7 @@ export class OpenApiService {
 
     const isMultiTenant = this.configService.get('isMultiTenant')
 
-    const entities = Object.entries(appManifest.entities).reduce(
-      (
-        acc: { [k: string]: EntityManifest },
-        [className, entity]: [string, EntityManifest]
-      ) => {
-        const name = removePrefixFromEntity(className, manifestId)
-
-        acc[name] = {
-          ...entity,
-          className: name,
-          slug: removePrefixFromEntity(entity.slug, manifestId),
-          relationships: entity.relationships.map((relationship) => ({
-            ...relationship,
-            entity: removePrefixFromEntity(relationship.entity, manifestId)
-          }))
-        }
-
-        return acc
-      },
-      {}
-    )
+    const entities = normalizeEntities(appManifest.entities, manifestId)
 
     return {
       openapi: '3.1.0',

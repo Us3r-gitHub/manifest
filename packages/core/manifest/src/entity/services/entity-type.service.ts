@@ -16,7 +16,7 @@ import {
   PropertyTsTypeInfo
 } from '../types/entity-ts-type-info'
 import { getDtoPropertyNameFromRelationship } from '../../../../common/src'
-import { removePrefixFromEntity } from '../utils/remove-prefix-from-entity.utils'
+import { normalizeEntities } from '../utils/normalize-entities.utils'
 
 @Injectable()
 export class EntityTypeService {
@@ -38,29 +38,21 @@ export class EntityTypeService {
 
     const entityTsTypeInfos: EntityTsTypeInfo[] = []
 
-    // Generate entity TS type.
-    Object.values(appManifest.entities).map((entity) => {
-      const className = this.configService.get('shouldPrefixTable')
-        ? removePrefixFromEntity(entity.className, manifestId)
-        : entity.className
+    const entities = normalizeEntities(appManifest.entities, manifestId)
 
-      entityTsTypeInfos.push(
-        this.generateEntityTypeInfoFromManifest({ ...entity, className })
-      )
-    })
+    // Generate entity TS type.
+    Object.values(entities).map((entity) =>
+      entityTsTypeInfos.push(this.generateEntityTypeInfoFromManifest(entity))
+    )
 
     // Generate CreateDTO TS type.
-    Object.values(appManifest.entities)
+    Object.values(entities)
       .filter((entity) => !entity.nested) // Nested entities cannot be created directly.
-      .map((entity) => {
-        const className = this.configService.get('shouldPrefixTable')
-          ? removePrefixFromEntity(entity.className, manifestId)
-          : entity.className
-
+      .map((entity) =>
         entityTsTypeInfos.push(
-          this.generateCreateDtoTypeInfoFromManifest({ ...entity, className })
+          this.generateCreateDtoTypeInfoFromManifest(entity)
         )
-      })
+      )
 
     return entityTsTypeInfos
   }

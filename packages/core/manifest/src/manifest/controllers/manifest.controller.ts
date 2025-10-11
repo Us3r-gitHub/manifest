@@ -5,7 +5,7 @@ import { AuthService } from '../../auth/auth.service'
 import { ManifestService } from '../services/manifest.service'
 import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 import { EntityManifestService } from '../services/entity-manifest.service'
-import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
+import { normalizeEntities } from '../../entity/utils/normalize-entities.utils'
 
 @Controller('/:tenantId/manifest')
 export class ManifestController {
@@ -39,27 +39,7 @@ export class ManifestController {
     })
     const manifestId = this.manifestService.getManifestId()
 
-    const entities = Object.entries(appManifest.entities).reduce(
-      (
-        acc: { [k: string]: EntityManifest },
-        [className, entity]: [string, EntityManifest]
-      ) => {
-        const name = removePrefixFromEntity(className, manifestId)
-
-        acc[name] = {
-          ...entity,
-          className: name,
-          slug: removePrefixFromEntity(entity.slug, manifestId),
-          relationships: entity.relationships.map((relationship) => ({
-            ...relationship,
-            entity: removePrefixFromEntity(relationship.entity, manifestId)
-          }))
-        }
-
-        return acc
-      },
-      {}
-    )
+    const entities = normalizeEntities(appManifest.entities, manifestId)
 
     return { ...appManifest, entities }
   }
