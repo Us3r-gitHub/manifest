@@ -5,23 +5,19 @@ import {
   SecuritySchemeObject
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { ADMIN_ENTITY_MANIFEST } from '../../constants'
-import { ConfigService } from '@nestjs/config'
-import { removePrefixFromEntity } from '../../entity/utils/remove-prefix-from-entity.utils'
 
 @Injectable()
 export class OpenApiAuthService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor() {}
   /**
    * Generates the paths for the OpenAPI spec: Login, signup ang get current user for authenticable entities.
    *
    * @param entityManifests The entity manifests.
-   * @param tenantId The tenantId.
    * @returns The paths.
    *
    */
   generateAuthPaths(
-    entityManifests: EntityManifest[],
-    tenantId?: string
+    entityManifests: EntityManifest[]
   ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {}
 
@@ -48,12 +44,8 @@ export class OpenApiAuthService {
     }
 
     authenticableEntities.forEach((entity: EntityManifest) => {
-      const slug = this.configService.get('shouldPrefixTable')
-        ? removePrefixFromEntity(entity.slug, tenantId)
-        : entity.slug
-
       // Login.
-      paths[`/auth/${slug}/login`] = {
+      paths[`/auth/${entity.slug}/login`] = {
         post: {
           summary: `Login as a ${entity.nameSingular}`,
           description: `Logs in as a ${entity.nameSingular}.`,
@@ -141,7 +133,7 @@ export class OpenApiAuthService {
       }
 
       // Get current user.
-      paths[`/auth/${slug}/me`] = {
+      paths[`/auth/${entity.slug}/me`] = {
         get: {
           summary: `Get current ${entity.nameSingular}`,
           description: `Get current ${entity.nameSingular}.`,
@@ -198,7 +190,7 @@ export class OpenApiAuthService {
           (policy: PolicyManifest) => policy.access === 'public'
         )
       ) {
-        paths[`/auth/${slug}/signup`] = {
+        paths[`/auth/${entity.slug}/signup`] = {
           post: {
             summary: `Signup as ${entity.nameSingular}`,
             description: `Signs up as ${entity.nameSingular}.`,
