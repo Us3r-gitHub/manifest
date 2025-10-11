@@ -33,13 +33,14 @@ export class ManifestController {
    */
   @Get()
   @UseGuards(IsAdminGuard)
-  async getAppManifest(): Promise<AppManifest> {
+  async getAppManifest(
+    @Param('tenantId') tenantId: string
+  ): Promise<AppManifest> {
     const appManifest = this.manifestService.getAppManifest({
       fullVersion: true
     })
-    const manifestId = this.manifestService.getManifestId()
 
-    const entities = normalizeEntities(appManifest.entities, manifestId)
+    const entities = normalizeEntities(appManifest.entities, tenantId)
 
     return { ...appManifest, entities }
   }

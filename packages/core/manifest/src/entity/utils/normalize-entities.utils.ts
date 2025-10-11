@@ -11,7 +11,9 @@ function removePrefixFromEntity(entity: string, prefix?: string): string {
   return entity.startsWith(prefix) ? entity.slice(prefix.length + 1) : entity
 }
 
-function normalizeEntity(entity: EntityManifest, manifestId: string) {
+function normalizeEntity(entity: EntityManifest, manifestId?: string) {
+  if (!manifestId) return entity
+
   return {
     ...entity,
     className: removePrefixFromEntity(entity.className, manifestId),
@@ -25,8 +27,10 @@ function normalizeEntity(entity: EntityManifest, manifestId: string) {
 
 export function normalizeEntities(
   entities: AppManifest['entities'],
-  manifestId: string
+  manifestId?: string
 ) {
+  if (!manifestId) return entities
+
   return Object.entries(entities).reduce(
     (
       acc: { [k: string]: EntityManifest },
