@@ -7,7 +7,7 @@ import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 import { EntityManifestService } from '../services/entity-manifest.service'
 import { normalizeEntities } from '../../entity/utils/normalize-entities.utils'
 
-@Controller('/:tenantId/manifest')
+@Controller('manifest')
 export class ManifestController {
   constructor(
     private manifestService: ManifestService,

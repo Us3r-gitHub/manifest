@@ -1,7 +1,7 @@
 import * as path from 'path'
 
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config'
 
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AppManifest, AppSettings, DatabaseConnection } from '@repo/types'
@@ -34,7 +34,7 @@ import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOpti
 import config from './config/config'
 import { ThrottlerModule } from '@nestjs/throttler'
 import { TenantBasedThrottlerGuard } from './tenant-based-throttler-guard'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_GUARD, RouterModule } from '@nestjs/core'
 
 @Module({
   imports: [
@@ -160,7 +160,28 @@ import { APP_GUARD } from '@nestjs/core'
     HandlerModule,
     SdkModule,
     MiddlewareModule,
-    EventModule
+    EventModule,
+    ConditionalModule.registerWhen(
+      RouterModule.register([
+        {
+          path: ':tenantId',
+          module: AuthModule
+        },
+        {
+          path: ':tenantId',
+          module: ManifestModule
+        },
+        {
+          path: ':tenantId',
+          module: CrudModule
+        },
+        {
+          path: ':tenantId',
+          module: EndpointModule
+        }
+      ]),
+      (env: NodeJS.ProcessEnv) => env['IS_MULTI_TENANT'] === 'true'
+    )
   ],
   providers: [
     {

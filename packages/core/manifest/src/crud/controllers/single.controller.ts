@@ -24,7 +24,7 @@ import { MiddlewareInterceptor } from '../../middleware/middleware.interceptor'
 
 @UseGuards(PolicyGuard, IsSingleGuard)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
-@Controller(`:tenantId/${SINGLES_PATH}`)
+@Controller(SINGLES_PATH)
 export class SingleController {
   constructor(
     private readonly authService: AuthService,

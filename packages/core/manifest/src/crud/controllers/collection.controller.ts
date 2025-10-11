@@ -28,7 +28,7 @@ import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 
 @UseGuards(PolicyGuard, IsCollectionGuard)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
-@Controller(`:tenantId/${COLLECTIONS_PATH}`)
+@Controller(COLLECTIONS_PATH)
 export class CollectionController {
   constructor(
     private readonly crudService: CrudService,

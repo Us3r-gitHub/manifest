@@ -73,11 +73,7 @@ export class AuthService {
     }
     return {
       token: jwt.sign(
-        {
-          email,
-          entitySlug,
-          tenantId
-        },
+        { email, entitySlug, tenantId },
         this.configService.get('tokenSecretKey')
       )
     }

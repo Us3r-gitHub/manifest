@@ -17,7 +17,7 @@ import { PolicyGuard } from '../policy/policy.guard'
 import { IsDbEmptyGuard } from './guards/is-db-empty.guard'
 
 @UseGuards(PolicyGuard)
-@Controller(':tenantId/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
