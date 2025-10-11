@@ -54,21 +54,21 @@ export class AuthController {
   @Rule('signup')
   @Post(':entitySlug/signup')
   public async signup(
+    @Param('tenantId') tenantId: string,
     @Param('entitySlug') entitySlug: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto,
     @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup(
-      req['entityTenant'] || entitySlug,
-      signupUserDto
-    )
+    return this.authService.signup(req['entityTenant'] || entitySlug, {
+      ...signupUserDto,
+      tenantId
+    })
   }
 
   @Get(':entitySlug/me')
   public async getCurrentUser(
-    @Param('entitySlug') _entity: string,
     @Req() req: Request
   ): Promise<AuthenticableEntity> {
     return (await this.authService.getUserFromRequest(req)).user

@@ -19,6 +19,14 @@ export class AuthService {
     private readonly entityManifestService: EntityManifestService,
     private readonly crudService: CrudService
   ) {}
+
+  includeTenantId(entitySlug: string) {
+    return (
+      this.configService.get('shouldPrefixTable') &&
+      entitySlug === ADMIN_ENTITY_MANIFEST.slug
+    )
+  }
+
   /**
    * Creates a JWT token for a user. This user can be of any entity that extends AuthenticableEntity.
    *
@@ -26,6 +34,7 @@ export class AuthService {
    * @param signupUserDto The DTO with the email and password of the user
    * @param email The email of the user
    * @param password The password of the user
+   * @param tenantId The tenantId of the user (multi-tenant Mode)
    *
    * @returns A JWT token
    */
@@ -35,10 +44,6 @@ export class AuthService {
   ): Promise<{
     token: string
   }> {
-    const isMultiTenant = this.configService.get('isMultiTenant')
-
-    const isEntityAdmin = entitySlug === ADMIN_ENTITY_MANIFEST.slug
-
     const entityManifest: EntityManifest =
       this.entityManifestService.getEntityManifest({
         slug: entitySlug
@@ -57,7 +62,7 @@ export class AuthService {
       entitySlug,
       email,
       password,
-      isMultiTenant && isEntityAdmin ? tenantId : undefined
+      this.includeTenantId(entitySlug) ? tenantId : undefined
     )
 
     if (!user) {
@@ -71,7 +76,7 @@ export class AuthService {
         {
           email,
           entitySlug,
-          tenantId: isMultiTenant && isEntityAdmin ? tenantId : undefined
+          tenantId
         },
         this.configService.get('tokenSecretKey')
       )
@@ -85,6 +90,7 @@ export class AuthService {
    * @param entitySlug The slug of the AuthenticableEntity where the user is going to be created
    * @param email The email of the user
    * @param password The password of the user
+   * @param tenantId The tenantId of the user (multi-tenant Mode)
    * @param byPassAdminCheck If true, the method will not check if the entity is an admin
    *
    * @returns A JWT token of the created user
@@ -95,9 +101,7 @@ export class AuthService {
     signupUserDto: SignupAuthenticableEntityDto,
     byPassAdminCheck?: boolean
   ): Promise<{ token: string }> {
-    const isEntityAdmin = entitySlug === ADMIN_ENTITY_MANIFEST.slug
-
-    if (isEntityAdmin && !byPassAdminCheck) {
+    if (entitySlug === ADMIN_ENTITY_MANIFEST.slug && !byPassAdminCheck) {
       throw new HttpException(
         'Admins cannot be created with this method.',
         HttpStatus.BAD_REQUEST
@@ -116,18 +120,15 @@ export class AuthService {
       )
     }
 
-    const savedUser = (await this.crudService.store(entitySlug, {
-      ...signupUserDto,
-      tenantId:
-        this.configService.get('shouldPrefixTable') && isEntityAdmin
-          ? signupUserDto.tenantId
-          : undefined
-    })) as AuthenticableEntity
+    const userDto = signupUserDto as AuthenticableEntity
+    if (this.includeTenantId(entitySlug))
+      userDto['tenantId'] = signupUserDto.tenantId
+    const savedUser = (await this.crudService.store(
+      entitySlug,
+      userDto
+    )) as AuthenticableEntity
 
-    return this.createToken(entitySlug, {
-      ...signupUserDto,
-      email: savedUser.email
-    })
+    return this.createToken(entitySlug, savedUser)
   }
 
   /**
@@ -167,7 +168,7 @@ export class AuthService {
       }) as Repository<AuthenticableEntity>
 
     const whereClause =
-      this.configService.get('shouldPrefixTable') && tenantId
+      this.includeTenantId(entitySlug) && tenantId
         ? { email, tenantId }
         : { email }
     const user = await entityRepository.findOne({
@@ -222,7 +223,7 @@ export class AuthService {
       ADMIN_ENTITY_MANIFEST.slug,
       DEFAULT_ADMIN_CREDENTIALS.email,
       DEFAULT_ADMIN_CREDENTIALS.password,
-      tenantId
+      this.includeTenantId(ADMIN_ENTITY_MANIFEST.slug) ? tenantId : undefined
     )
 
     return { exists: !!admin }
@@ -249,10 +250,7 @@ export class AuthService {
         entitySlug
       }) as Repository<AuthenticableEntity>
 
-    const whereClause =
-      this.configService.get('shouldPrefixTable') && tenantId
-        ? { email, tenantId }
-        : { email }
+    const whereClause = tenantId ? { email, tenantId } : { email }
     const user: AuthenticableEntity = await entityRepository.findOne({
       where: whereClause
     })
