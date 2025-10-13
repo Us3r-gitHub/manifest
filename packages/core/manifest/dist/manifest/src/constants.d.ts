@@ -1,0 +1,27 @@
+import { EntityManifest, PropertyManifest, ImageSizesObject, PolicyManifest } from '@repo/types';
+export declare const STORAGE_PATH: string;
+export declare const API_PATH: string;
+export declare const COLLECTIONS_PATH: string;
+export declare const SINGLES_PATH: string;
+export declare const ENDPOINTS_PATH: string;
+export declare const GENERATED_FOLDER_PATH: string;
+export declare const DEFAULT_PORT: number;
+export declare const DEFAULT_RESULTS_PER_PAGE: number;
+export declare const SALT_ROUNDS: number;
+export declare const DEFAULT_SEED_COUNT: number;
+export declare const DEFAULT_MAX_MANY_TO_MANY_RELATIONS: number;
+export declare const DUMMY_FILE_NAME: string;
+export declare const DUMMY_IMAGE_NAME: string;
+export declare const DEFAULT_TOKEN_SECRET_KEY: string;
+export declare const DEFAULT_IMAGE_SIZES: ImageSizesObject;
+export declare const AUTHENTICABLE_PROPS: PropertyManifest[];
+export declare const TENANT_PROPS: PropertyManifest[];
+export declare const DEFAULT_ADMIN_CREDENTIALS: {
+    email: string;
+    password: string;
+};
+export declare const ADMIN_ENTITY_MANIFEST: EntityManifest;
+export declare const QUERY_PARAMS_RESERVED_WORDS: string[];
+export declare const ADMIN_ACCESS_POLICY: PolicyManifest;
+export declare const PUBLIC_ACCESS_POLICY: PolicyManifest;
+export declare const FORBIDDEN_ACCESS_POLICY: PolicyManifest;

@@ -1,0 +1,22 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PropType = void 0;
+var PropType;
+(function (PropType) {
+    PropType["String"] = "string";
+    PropType["Text"] = "text";
+    PropType["RichText"] = "richText";
+    PropType["Number"] = "number";
+    PropType["Link"] = "link";
+    PropType["Money"] = "money";
+    PropType["Date"] = "date";
+    PropType["Timestamp"] = "timestamp";
+    PropType["Email"] = "email";
+    PropType["Boolean"] = "boolean";
+    PropType["Password"] = "password";
+    PropType["Choice"] = "choice";
+    PropType["Location"] = "location";
+    PropType["File"] = "file";
+    PropType["Image"] = "image";
+    PropType["Nested"] = "group";
+})(PropType || (exports.PropType = PropType = {}));

@@ -1,0 +1,7 @@
+import { CanActivate, ExecutionContext } from '@nestjs/common';
+import { EntityManifestService } from '../../manifest/services/entity-manifest.service';
+export declare class IsSingleGuard implements CanActivate {
+    private readonly entityManifestService;
+    constructor(entityManifestService: EntityManifestService);
+    canActivate(context: ExecutionContext): boolean;
+}
