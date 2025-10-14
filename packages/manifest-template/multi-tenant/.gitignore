@@ -1,0 +1,9 @@
+# compiled output
+node_modules
+
+# Generated project
+.manifest
+
+# Logs
+logs
+*.log
