@@ -104,7 +104,7 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: async (configService, entityLoaderService, manifestService) => {
                     let dbConnection;
                     let databaseConfig;
-                    switch (configService.get('DB_CONNECTION')) {
+                    switch (configService.get('database').connection) {
                         case 'postgres':
                             dbConnection = 'postgres';
                             databaseConfig = configService.get('database').postgres;

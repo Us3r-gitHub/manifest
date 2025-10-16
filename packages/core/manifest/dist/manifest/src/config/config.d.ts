@@ -21,6 +21,7 @@ declare const _default: () => {
         handlersFolder: string;
     };
     database: {
+        connection: string;
         sqlite: (manifestFolder?: string) => SqliteConnectionOptions;
         postgres: PostgresConnectionOptions;
         mysql: MysqlConnectionOptions;
