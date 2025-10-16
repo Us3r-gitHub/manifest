@@ -66,6 +66,7 @@ export default (): {
     handlersFolder: string
   }
   database: {
+    connection: string
     sqlite: (manifestFolder?: string) => SqliteConnectionOptions
     postgres: PostgresConnectionOptions
     mysql: MysqlConnectionOptions
@@ -124,6 +125,8 @@ export default (): {
       manifestFolder: manifestFolder
     },
     database: {
+      connection:
+        process.env.NEON_DB === 'true' ? 'postgres' : process.env.DB_CONNECTION,
       sqlite: (manifestFolder?: string) =>
         getSqliteConnectionOptions(generatedFolder, manifestFolder),
       postgres: getPostgresConnectionOptions(),
@@ -163,6 +166,15 @@ function getSqliteConnectionOptions(
 }
 
 function getPostgresConnectionOptions(): PostgresConnectionOptions {
+  if (process.env.NEON_DB === 'true')
+    return {
+      type: 'postgres',
+      url: process.env.NEON_DB_URL,
+      ssl: true,
+      dropSchema: process.env.DB_DROP_SCHEMA === 'true' || false,
+      synchronize: true
+    }
+
   return {
     type: 'postgres',
     host: process.env.DB_HOST || 'localhost',

@@ -58,7 +58,7 @@ import { APP_GUARD, RouterModule } from '@nestjs/core'
           | PostgresConnectionOptions
           | MysqlConnectionOptions
 
-        switch (configService.get('DB_CONNECTION')) {
+        switch (configService.get('database').connection) {
           case 'postgres':
             dbConnection = 'postgres'
             databaseConfig = configService.get('database').postgres
