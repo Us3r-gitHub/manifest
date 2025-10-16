@@ -180,7 +180,9 @@ import { APP_GUARD, RouterModule } from '@nestjs/core'
           module: EndpointModule
         }
       ]),
-      (env: NodeJS.ProcessEnv) => env['IS_MULTI_TENANT'] === 'true'
+      (env: NodeJS.ProcessEnv) =>
+        env['SHOULD_PREFIX_TABLE'] === 'true' ||
+        env['IS_MULTI_TENANT'] === 'true'
     )
   ],
   providers: [
