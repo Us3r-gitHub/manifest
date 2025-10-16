@@ -199,7 +199,8 @@ exports.AppModule = AppModule = __decorate([
                     path: ':tenantId',
                     module: endpoint_module_1.EndpointModule
                 }
-            ]), (env) => env['IS_MULTI_TENANT'] === 'true')
+            ]), (env) => env['SHOULD_PREFIX_TABLE'] === 'true' ||
+                env['IS_MULTI_TENANT'] === 'true')
         ],
         providers: [
             {
