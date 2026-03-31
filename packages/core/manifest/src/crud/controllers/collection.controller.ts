@@ -26,26 +26,26 @@ import { COLLECTIONS_PATH } from '../../constants'
 import { MiddlewareInterceptor } from '../../middleware/middleware.interceptor'
 import { IsAdminGuard } from '../../auth/guards/is-admin.guard'
 
-@Controller(COLLECTIONS_PATH)
 @UseGuards(PolicyGuard, IsCollectionGuard)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
+@Controller(COLLECTIONS_PATH)
 export class CollectionController {
   constructor(
     private readonly crudService: CrudService,
     private readonly authService: AuthService
   ) {}
 
-  @Get('/:entity')
   @Rule('read')
+  @Get('/:entitySlug')
   async findAll(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Query() queryParams: { [key: string]: string | string[] },
     @Req() req: Request
   ): Promise<Paginator<BaseEntity>> {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     return this.crudService.findAll({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       queryParams,
       fullVersion: isAdmin
     })
@@ -60,22 +60,23 @@ export class CollectionController {
    *
    * @returns The select options for the entity.
    */
-  @Get(':entity/select-options')
   @UseGuards(IsAdminGuard)
+  @Get(':entitySlug/select-options')
   findSelectOptions(
-    @Param('entity') entitySlug: string,
-    @Query() queryParams: { [key: string]: string | string[] }
+    @Param('entitySlug') entitySlug: string,
+    @Query() queryParams: { [key: string]: string | string[] },
+    @Req() req: Request
   ): Promise<SelectOption[]> {
     return this.crudService.findSelectOptions({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       queryParams
     })
   }
 
-  @Get(':entity/:id')
   @Rule('read')
+  @Get(':entitySlug/:id')
   async findOne(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Query() queryParams: { [key: string]: string | string[] },
     @Req() req: Request
@@ -83,53 +84,61 @@ export class CollectionController {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     return this.crudService.findOne({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
       id,
       queryParams,
       fullVersion: isAdmin
     })
   }
 
-  @Post(':entity')
   @Rule('create')
+  @Post(':entitySlug')
   store(
-    @Param('entity') entity: string,
-    @Body() entityDto: Partial<BaseEntity>
+    @Param('entitySlug') entitySlug: string,
+    @Body() entityDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.store(entity, entityDto)
+    return this.crudService.store(req['entityTenant'] || entitySlug, entityDto)
   }
 
-  @Put(':entity/:id')
   @Rule('update')
+  @Put(':entitySlug/:id')
   put(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() itemDto: Partial<BaseEntity>
-  ): Promise<BaseEntity> {
-    return this.crudService.update({ entitySlug, id, itemDto })
-  }
-
-  @Patch(':entity/:id')
-  @Rule('update')
-  patch(
-    @Param('entity') entitySlug: string,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
     return this.crudService.update({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
+      id,
+      itemDto
+    })
+  }
+
+  @Rule('update')
+  @Patch(':entitySlug/:id')
+  patch(
+    @Param('entitySlug') entitySlug: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
+  ): Promise<BaseEntity> {
+    return this.crudService.update({
+      entitySlug: req['entityTenant'] || entitySlug,
       id,
       itemDto,
       partialReplacement: true
     })
   }
 
-  @Delete(':entity/:id')
   @Rule('delete')
+  @Delete(':entitySlug/:id')
   delete(
-    @Param('entity') entity: string,
-    @Param('id', ParseUUIDPipe) id: string
+    @Param('entitySlug') entitySlug: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request
   ): Promise<BaseEntity> {
-    return this.crudService.delete(entity, id)
+    return this.crudService.delete(req['entityTenant'] || entitySlug, id)
   }
 }

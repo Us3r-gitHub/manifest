@@ -10,8 +10,8 @@ import {
 } from '@repo/types'
 
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { DataSource, EntityMetadata, QueryRunner, Repository } from 'typeorm'
-import { EntityService } from '../../entity/services/entity.service'
 
 import { faker } from '@faker-js/faker'
 import * as fs from 'fs'
@@ -28,8 +28,11 @@ import {
 } from '../../constants'
 
 import { StorageService } from '../../storage/services/storage.service'
+import { EntityService } from '../../entity/services/entity.service'
+import { ManifestService } from '../../manifest/services/manifest.service'
 import { EntityManifestService } from '../../manifest/services/entity-manifest.service'
 
+// TODO-Next: Handle multi-tenant case for dynamic connection with multiple DB
 @Injectable()
 export class SeederService {
   seededFiles: { [key: string]: string } = {}
@@ -37,7 +40,9 @@ export class SeederService {
   records: { [key: string]: BaseEntity[] } = {}
 
   constructor(
+    private configService: ConfigService,
     private entityService: EntityService,
+    private manifestService: ManifestService,
     private entityManifestService: EntityManifestService,
     private storageService: StorageService,
     private dataSource: DataSource
@@ -117,6 +122,43 @@ export class SeederService {
       (entity: EntityMetadata) => entity.tableType === 'regular'
     )
 
+    if (this.configService.get('shouldPrefixTable')) {
+      const manifestFiles: string[] = this.configService.get('manifestFiles')
+      for (const manifestFile of manifestFiles) {
+        const manifestId = path.basename(path.dirname(manifestFile))
+
+        this.manifestService.setManifestId(manifestId)
+
+        // Keep specific tables per tenant
+        const currentEntityMetadatas = entityMetadatas.filter(
+          (entity: EntityMetadata) => entity.tableName.startsWith(manifestId)
+        )
+
+        await this.seedEntities(currentEntityMetadatas)
+      }
+    } else {
+      await this.seedEntities(entityMetadatas)
+    }
+
+    const repository: Repository<BaseEntity> =
+      this.entityService.getEntityRepository({
+        entitySlug: ADMIN_ENTITY_MANIFEST.slug
+      })
+    if (this.configService.get('isMultiTenant')) {
+      const manifestFiles: string[] = this.configService.get('manifestFiles')
+      for (const manifestFile of manifestFiles) {
+        const manifestId = path.basename(path.dirname(manifestFile))
+
+        console.log(`✅ Seeding Admin for ${manifestId}`)
+
+        await this.seedAdmin(repository, manifestId)
+      }
+    } else {
+      await this.seedAdmin(repository)
+    }
+  }
+
+  async seedEntities(entityMetadatas: EntityMetadata[]): Promise<void> {
     for (const entityMetadata of entityMetadatas) {
       const repository: Repository<BaseEntity> =
         this.entityService.getEntityRepository({
@@ -124,7 +166,6 @@ export class SeederService {
         })
 
       if (entityMetadata.name === ADMIN_ENTITY_MANIFEST.className) {
-        await this.seedAdmin(repository)
         continue
       }
 
@@ -243,8 +284,6 @@ export class SeederService {
     }
 
     await Promise.all(manyToManyPromises)
-
-    return
   }
 
   /**
@@ -381,8 +420,12 @@ export class SeederService {
    * Seed the Admin table with default credentials. Only one admin user is created.
    *
    * @param repository The repository for the Admin entity.
+   * @param manifestId The manifestId for specific tenant.
    */
-  async seedAdmin(repository: Repository<BaseEntity>): Promise<void> {
+  async seedAdmin(
+    repository: Repository<BaseEntity>,
+    manifestId?: string
+  ): Promise<void> {
     console.log(
       `✅ Seeding default admin ${DEFAULT_ADMIN_CREDENTIALS.email} with password "${DEFAULT_ADMIN_CREDENTIALS.password}"...`
     )
@@ -391,6 +434,7 @@ export class SeederService {
       repository.create() as AuthenticableEntity
     admin.email = DEFAULT_ADMIN_CREDENTIALS.email
     admin.password = bcrypt.hashSync(DEFAULT_ADMIN_CREDENTIALS.password, 1)
+    if (this.configService.get('shouldPrefixTable')) admin.tenantId = manifestId
 
     await repository.save(admin)
   }

@@ -1,18 +1,21 @@
-import { AppManifest, EntityManifest } from '@repo/types'
+import { EntityManifest } from '@repo/types'
 import { Injectable } from '@nestjs/common'
 import { PathItemObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
 import { getForbiddenResponse } from '../utils/common-response.utils'
+
 @Injectable()
 export class OpenApiManifestService {
+  constructor() {}
+
   /**
    * Generates the paths for the manifest endpoints.
    *
-   * @param appManifest The manifest of the application.
+   * @param entityManifests The entity manifests.
    * @returns The paths for the manifest endpoints.
    *
    */
   generateManifestPaths(
-    appManifest: AppManifest
+    entityManifests: EntityManifest[]
   ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {
       ['/manifest']: {
@@ -42,12 +45,10 @@ export class OpenApiManifestService {
       }
     }
 
-    Object.values(appManifest.entities).forEach(
-      (entityManifest: EntityManifest) => {
-        paths[`/manifest/entities/${entityManifest.slug}`] =
-          this.generateEntityManifestPath(entityManifest)
-      }
-    )
+    entityManifests.forEach((entityManifest: EntityManifest) => {
+      paths[`/manifest/entities/${entityManifest.slug}`] =
+        this.generateEntityManifestPath(entityManifest)
+    })
 
     return paths
   }

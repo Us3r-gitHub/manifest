@@ -63,4 +63,6 @@ describe('LoggerService', () => {
   })
 
   // TODO: it should not console log the URL of the API doc if openApiDocs is false
+
+  // TODO: it should not console log the URL of the Admin Panel if hideAdminPanel is true
 })

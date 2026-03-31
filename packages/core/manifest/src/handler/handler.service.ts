@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { Request, Response } from 'express'
-import path from 'path'
-import fs from 'fs'
+import * as path from 'path'
+import * as fs from 'fs'
 import { ConfigService } from '@nestjs/config'
 import { BackendSDK } from '../sdk/backend-sdk'
 
@@ -30,7 +30,10 @@ export class HandlerService {
     req: Request
     res: Response
   }): Promise<unknown> {
-    const handlerFn = await this.importHandler(path)
+    let tenantId: string
+    if (this.configService.get('isMultiTenant')) tenantId = req.params.tenantId
+
+    const handlerFn = await this.importHandler(path, tenantId)
 
     return handlerFn(req, res, this.sdk)
   }
@@ -38,14 +41,21 @@ export class HandlerService {
   /**
    * Import handler function to trigger the handler.
    *
-   * @param handler Handler path
+   * @param handler Handler file name
    */
-  async importHandler(handler: string) {
+  async importHandler(handler: string, tenantId?: string) {
     // Construct the handler file path.
-    const handlerPath = path.resolve(
-      this.configService.get('paths').handlersFolder,
-      `${handler}.js`
-    )
+    const handlerPath = tenantId
+      ? path.resolve(
+          this.configService.get('paths').manifestFolder,
+          tenantId,
+          'handlers',
+          `${handler}.js`
+        )
+      : path.resolve(
+          this.configService.get('paths').handlersFolder,
+          `${handler}.js`
+        )
 
     if (!fs.existsSync(handlerPath)) {
       throw new HttpException('Handler not found', 500)

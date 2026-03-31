@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common'
+import { MiddlewareConsumer, Module, forwardRef } from '@nestjs/common'
 import { EntityModule } from '../entity/entity.module'
 import { ManifestController } from './controllers/manifest.controller'
 import { SchemaService } from './services/schema.service'
@@ -12,6 +12,7 @@ import { PolicyModule } from '../policy/policy.module'
 import { EndpointModule } from '../endpoint/endpoint.module'
 import { PropertyManifestService } from './services/property-manifest.service'
 import { LockFileService } from './services/lock-file.service'
+import { MatchEntityMiddleware } from '../middleware/match-entity.middleware'
 
 /**
  *
@@ -40,4 +41,8 @@ import { LockFileService } from './services/lock-file.service'
   controllers: [ManifestController],
   exports: [ManifestService, EntityManifestService, RelationshipManifestService]
 })
-export class ManifestModule {}
+export class ManifestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MatchEntityMiddleware).forRoutes(ManifestController)
+  }
+}

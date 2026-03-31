@@ -1,8 +1,10 @@
+import * as path from 'path'
+
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config'
 
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { AppManifest, DatabaseConnection } from '@repo/types'
+import { AppManifest, AppSettings, DatabaseConnection } from '@repo/types'
 import { EntitySchema } from 'typeorm'
 import { AuthModule } from './auth/auth.module'
 import { CrudModule } from './crud/crud.module'
@@ -30,8 +32,9 @@ import { EventModule } from './event/event.module'
 
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions'
 import config from './config/config'
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
-import { APP_GUARD } from '@nestjs/core'
+import { ThrottlerModule } from '@nestjs/throttler'
+import { TenantBasedThrottlerGuard } from './tenant-based-throttler-guard'
+import { APP_GUARD, RouterModule } from '@nestjs/core'
 
 @Module({
   imports: [
@@ -40,6 +43,8 @@ import { APP_GUARD } from '@nestjs/core'
       envFilePath: ['.env', '.env.contribution'],
       load: [config]
     }),
+    // TODO-Next: Implement dynamic connection for multiple DB
+    // NOTE: Try to implement `Conditional module configuration` https://docs.nestjs.com/techniques/configuration#conditional-module-configuration
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule, EntityModule, ManifestModule],
       useFactory: async (
@@ -53,7 +58,7 @@ import { APP_GUARD } from '@nestjs/core'
           | PostgresConnectionOptions
           | MysqlConnectionOptions
 
-        switch (configService.get('DB_CONNECTION')) {
+        switch (configService.get('database').connection) {
           case 'postgres':
             dbConnection = 'postgres'
             databaseConfig = configService.get('database').postgres
@@ -64,15 +69,35 @@ import { APP_GUARD } from '@nestjs/core'
             break
           default:
             dbConnection = 'sqlite'
-            databaseConfig = configService.get('database').sqlite
+            databaseConfig = configService.get('database').sqlite()
             break
         }
 
-        await manifestService.loadManifest(
-          configService.get('paths').manifestFile
-        )
-        const entities: EntitySchema[] =
-          entityLoaderService.loadEntities(dbConnection)
+        const entities: EntitySchema[] = []
+        if (configService.get('isMultiTenant')) {
+          const manifestFiles: string[] = configService.get('manifestFiles')
+          for (const manifestFile of manifestFiles) {
+            const manifestId = path.basename(path.dirname(manifestFile))
+
+            manifestService.setManifestId(manifestId)
+
+            await manifestService.loadManifest(manifestFile)
+
+            const appManifestEntities =
+              entityLoaderService.loadEntities(dbConnection)
+
+            entities.push(...appManifestEntities)
+          }
+        } else {
+          await manifestService.loadManifest(
+            configService.get('paths').manifestFile
+          )
+
+          const appManifestEntities =
+            entityLoaderService.loadEntities(dbConnection)
+
+          entities.push(...appManifestEntities)
+        }
 
         return Object.assign(databaseConfig, { entities })
       },
@@ -84,13 +109,37 @@ import { APP_GUARD } from '@nestjs/core'
         configService: ConfigService,
         manifestService: ManifestService
       ) => {
-        await manifestService.loadManifest(
-          configService.get('paths').manifestFile
-        )
+        const rateLimits: AppSettings['rateLimits'] = []
 
-        const appManifest: AppManifest = manifestService.getAppManifest()
+        if (configService.get('isMultiTenant')) {
+          const manifestFiles: string[] = configService.get('manifestFiles')
+          for (const manifestFile of manifestFiles) {
+            const manifestId = path.basename(path.dirname(manifestFile))
 
-        return appManifest.settings.rateLimits || []
+            manifestService.setManifestId(manifestId)
+
+            const appManifest: AppManifest =
+              await manifestService.loadManifest(manifestFile)
+
+            const appManifestRateLimits = (
+              appManifest.settings.rateLimits || []
+            ).map((rateLimit) => ({
+              ...rateLimit,
+              name: `${manifestId}_tenant_${rateLimit.name || 'default'}`
+            }))
+            rateLimits.push(...appManifestRateLimits)
+          }
+        } else {
+          await manifestService.loadManifest(
+            configService.get('paths').manifestFile
+          )
+
+          const appManifest: AppManifest = manifestService.getAppManifest()
+
+          rateLimits.push(...(appManifest.settings.rateLimits || []))
+        }
+
+        return rateLimits
       },
       inject: [ConfigService, ManifestService, EntityLoaderService]
     }),
@@ -111,12 +160,35 @@ import { APP_GUARD } from '@nestjs/core'
     HandlerModule,
     SdkModule,
     MiddlewareModule,
-    EventModule
+    EventModule,
+    ConditionalModule.registerWhen(
+      RouterModule.register([
+        {
+          path: ':tenantId',
+          module: AuthModule
+        },
+        {
+          path: ':tenantId',
+          module: ManifestModule
+        },
+        {
+          path: ':tenantId',
+          module: CrudModule
+        },
+        {
+          path: ':tenantId',
+          module: EndpointModule
+        }
+      ]),
+      (env: NodeJS.ProcessEnv) =>
+        env['SHOULD_PREFIX_TABLE'] === 'true' ||
+        env['IS_MULTI_TENANT'] === 'true'
+    )
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
+      useClass: TenantBasedThrottlerGuard
     }
   ]
 })

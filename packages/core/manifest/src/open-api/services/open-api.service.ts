@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config'
 import { API_PATH } from '../../constants'
 import { EntityTsTypeInfo } from '../../entity/types/entity-ts-type-info'
 import { OpenApiSchemaService } from './open-api-schema.service'
+import { normalizeEntities } from '../../entity/utils/normalize-entities.utils'
 
 @Injectable()
 export class OpenApiService {
@@ -33,6 +34,11 @@ export class OpenApiService {
    */
   generateOpenApiObject(entityTypeInfos: EntityTsTypeInfo[]): OpenAPIObject {
     const appManifest: AppManifest = this.manifestService.getAppManifest()
+    const manifestId = this.manifestService.getManifestId()
+
+    const isMultiTenant = this.configService.get('isMultiTenant')
+
+    const entities = normalizeEntities(appManifest.entities, manifestId)
 
     return {
       openapi: '3.1.0',
@@ -42,16 +48,16 @@ export class OpenApiService {
       },
       servers: [
         {
-          url: `${this.configService.get('baseUrl')}/${API_PATH}`,
+          url: `${this.configService.get('baseUrl')}/${API_PATH}${isMultiTenant ? `/${manifestId}` : ''}`,
           description: `${this.configService.get('nodeEnv') === 'production' ? 'Production' : 'Development'} server`
         }
       ],
       paths: {
-        ...this.openApiCrudService.generateEntityPaths(
-          Object.values(appManifest.entities)
+        ...this.openApiCrudService.generateEntityPaths(Object.values(entities)),
+        ...this.openApiManifestService.generateManifestPaths(
+          Object.values(entities)
         ),
-        ...this.openApiManifestService.generateManifestPaths(appManifest),
-        ...this.openApiAuthService.generateAuthPaths(appManifest),
+        ...this.openApiAuthService.generateAuthPaths(Object.values(entities)),
         ...this.openApiEndpointService.generateEndpointPaths(
           appManifest.endpoints
         )

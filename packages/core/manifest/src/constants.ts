@@ -54,6 +54,15 @@ export const AUTHENTICABLE_PROPS: PropertyManifest[] = [
     validation: { isNotEmpty: true }
   }
 ]
+export const TENANT_PROPS: PropertyManifest[] = [
+  {
+    name: 'tenantId',
+    type: PropType.String,
+    hidden: true,
+    validation: { isNotEmpty: true },
+    default: 'default'
+  }
+]
 
 // Admin entity.
 export const DEFAULT_ADMIN_CREDENTIALS = {

@@ -22,11 +22,7 @@ import { HookInterceptor } from '../../hook/hook.interceptor'
 import { SINGLES_PATH } from '../../constants'
 import { MiddlewareInterceptor } from '../../middleware/middleware.interceptor'
 
-/**
- * Controller for single type entities.
- */
 @UseGuards(PolicyGuard, IsSingleGuard)
-@UseInterceptors(HookInterceptor)
 @UseInterceptors(HookInterceptor, MiddlewareInterceptor)
 @Controller(SINGLES_PATH)
 export class SingleController {
@@ -44,19 +40,20 @@ export class SingleController {
    *
    * @returns The single item of the entity.
    */
-  @Get(':entity')
+  @Get(':entitySlug')
   @Rule('read')
   async findOne(
-    @Param('entity') entitySlug: string,
+    @Param('entitySlug') entitySlug: string,
     @Req() req: Request
   ): Promise<BaseEntity> {
     const isAdmin: boolean = await this.authService.isReqUserAdmin(req)
 
     let singleItem: BaseEntity
+    const slug = req['entityTenant'] || entitySlug
 
     try {
       singleItem = await this.crudService.findOne({
-        entitySlug,
+        entitySlug: slug,
         fullVersion: isAdmin
       })
     } catch (e) {
@@ -68,23 +65,28 @@ export class SingleController {
     return singleItem
   }
 
-  @Put(':entity')
+  @Put(':entitySlug')
   @Rule('update')
   put(
-    @Param('entity') entitySlug: string,
-    @Body() itemDto: Partial<BaseEntity>
-  ): Promise<BaseEntity> {
-    return this.crudService.update({ entitySlug, itemDto })
-  }
-
-  @Patch(':entity')
-  @Rule('update')
-  patch(
-    @Param('entity') entitySlug: string,
-    @Body() itemDto: Partial<BaseEntity>
+    @Param('entitySlug') entitySlug: string,
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
   ): Promise<BaseEntity> {
     return this.crudService.update({
-      entitySlug,
+      entitySlug: req['entityTenant'] || entitySlug,
+      itemDto
+    })
+  }
+
+  @Patch(':entitySlug')
+  @Rule('update')
+  patch(
+    @Param('entitySlug') entitySlug: string,
+    @Body() itemDto: Partial<BaseEntity>,
+    @Req() req: Request
+  ): Promise<BaseEntity> {
+    return this.crudService.update({
+      entitySlug: req['entityTenant'] || entitySlug,
       itemDto,
       partialReplacement: true
     })

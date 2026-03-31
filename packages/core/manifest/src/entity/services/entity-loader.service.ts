@@ -8,6 +8,7 @@ import {
   PropertyManifest
 } from '@repo/types'
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import {
   ColumnType,
   EntitySchema as TypeORMEntitySchema, // Alias to avoid conflict with Manifest EntitySchema.
@@ -23,10 +24,12 @@ import { BooleanTransformer } from '../transformers/boolean-transformer'
 import { NumberTransformer } from '../transformers/number-transformer'
 import { TimestampTransformer } from '../transformers/timestamp-transformer'
 import { ManifestService } from '../../manifest/services/manifest.service'
+import { ADMIN_ENTITY_MANIFEST } from '../../constants'
 
 @Injectable()
 export class EntityLoaderService {
   constructor(
+    private configService: ConfigService,
     private manifestService: ManifestService,
     private relationshipService: RelationshipService
   ) {}
@@ -108,7 +111,17 @@ export class EntityLoaderService {
           this.relationshipService.getEntitySchemaRelationOptions(
             entityManifest
           ),
-        uniques: entityManifest['authenticable'] ? [{ columns: ['email'] }] : []
+        uniques: entityManifest['authenticable']
+          ? entityManifest.className === ADMIN_ENTITY_MANIFEST.className
+            ? [
+                {
+                  columns: this.configService.get('shouldPrefixTable')
+                    ? ['email', 'tenantId']
+                    : ['email']
+                }
+              ]
+            : [{ columns: ['email'] }]
+          : []
       })
 
       return entitySchema

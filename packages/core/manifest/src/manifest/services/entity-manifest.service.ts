@@ -136,33 +136,41 @@ export class EntityManifestService {
    */
   transformEntityManifests({
     entities,
-    groups
+    groups,
+    prefix
   }: {
     entities: { [k: string]: EntitySchema }
     groups?: { [k: string]: GroupSchema }
+    prefix?: string
   }): EntityManifest[] {
     const entityManifests: EntityManifest[] = [
       ...Object.entries(entities || {}),
       ...Object.entries(groups || {})
     ].map(([className, entitySchema]: [string, EntitySchema | GroupSchema]) => {
+      const prefixTable = prefix ? `${prefix}_` : ''
+      const prefixSlug = prefix ? `${prefix}-` : ''
+      const entityClassName = entitySchema['className'] || className
+
       // Build the partial entity manifest with common properties of both collection and single entities.
       const partialEntityManifest: EntityManifestCommonFields = {
-        className: entitySchema['className'] || className,
+        className: prefixTable + entityClassName,
         nameSingular: entitySchema['nameSingular']
           ? camelize(entitySchema['nameSingular'])
-          : camelize(
-              pluralize.singular(entitySchema['className'] || className)
-            ),
+          : camelize(pluralize.singular(entityClassName)),
+        namePlural: entitySchema['namePlural']
+          ? camelize(entitySchema['namePlural'])
+          : camelize(pluralize.plural(entityClassName)),
         slug:
-          entitySchema['slug'] ||
-          slugify(
-            dasherize(
-              entitySchema['single']
-                ? entitySchema['className'] || className
-                : entitySchema['namePlural'] ||
-                    pluralize.plural(entitySchema['className'] || className)
-            ).toLowerCase()
-          ),
+          prefixSlug +
+          (entitySchema['slug'] ||
+            slugify(
+              dasherize(
+                entitySchema['single']
+                  ? entityClassName
+                  : entitySchema['namePlural'] ||
+                      pluralize.plural(entityClassName)
+              ).toLowerCase()
+            )),
         single: entitySchema['single'] || false,
         properties: (entitySchema.properties || [])
           // Filter out the eventual id property as we are adding it manually.
@@ -191,7 +199,8 @@ export class EntityManifestService {
 
       return this.getCollectionEntityManifestProps(
         partialEntityManifest,
-        entitySchema
+        entitySchema,
+        prefix
       )
     })
 
@@ -269,19 +278,37 @@ export class EntityManifestService {
    */
   private getCollectionEntityManifestProps(
     partialEntityManifest: EntityManifestCommonFields,
-    entitySchema: EntitySchema
+    entitySchema: EntitySchema,
+    prefix?: string
   ): EntityManifest {
     if (entitySchema.authenticable) {
       partialEntityManifest.properties.push(...AUTHENTICABLE_PROPS)
+    }
+
+    function applyPrefixToRelationship(
+      relationship: RelationshipSchema,
+      prefix?: string
+    ): RelationshipSchema {
+      const relationshipWithPrefix =
+        typeof relationship === 'string'
+          ? {
+              name: relationship,
+              entity: `${prefix}_${relationship}`,
+              eager: false
+            }
+          : {
+              ...relationship,
+              name: relationship.name || relationship.entity,
+              entity: `${prefix}_${relationship.entity}`
+            }
+
+      return prefix ? relationshipWithPrefix : relationship
     }
 
     return {
       ...partialEntityManifest,
       properties: partialEntityManifest.properties,
       hooks: partialEntityManifest.hooks,
-      namePlural: entitySchema.namePlural
-        ? camelize(entitySchema.namePlural)
-        : camelize(pluralize.plural(partialEntityManifest.className)),
       // Guess the main prop if not provided.
       mainProp:
         entitySchema.mainProp ||
@@ -295,19 +322,21 @@ export class EntityManifestService {
       seedCount: entitySchema.seedCount || DEFAULT_SEED_COUNT,
       relationships: [
         ...(entitySchema.belongsTo || []).map(
-          (relationship: RelationshipSchema) =>
-            this.relationshipManifestService.transformRelationship(
-              relationship,
+          (relationship: RelationshipSchema) => {
+            return this.relationshipManifestService.transformRelationship(
+              applyPrefixToRelationship(relationship, prefix),
               'many-to-one'
             )
+          }
         ),
         ...(entitySchema.belongsToMany || []).map(
-          (relationship: RelationshipSchema) =>
-            this.relationshipManifestService.transformRelationship(
-              relationship,
+          (relationship: RelationshipSchema) => {
+            return this.relationshipManifestService.transformRelationship(
+              applyPrefixToRelationship(relationship, prefix),
               'many-to-many',
               partialEntityManifest.className
             )
+          }
         )
       ],
       authenticable: entitySchema.authenticable || false,

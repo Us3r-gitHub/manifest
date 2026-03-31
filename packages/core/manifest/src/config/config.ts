@@ -1,12 +1,15 @@
+import * as path from 'path'
+import * as fs from 'fs'
+
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionOptions'
+
 import {
   DEFAULT_PORT,
   DEFAULT_TOKEN_SECRET_KEY,
   GENERATED_FOLDER_PATH
 } from '../constants'
-import path from 'path'
 
 export default (): {
   port: number | string
@@ -14,7 +17,24 @@ export default (): {
   tokenSecretKey: string
   baseUrl: string
   showOpenApiDocs: boolean
+  hideAdminPanel: boolean
+  /**
+   * - Multi-tenant mode uses manifestFiles and manifestFolder.
+   * - Single-tenant mode uses manifestFile for a specific manifest and handlersFolder for custom handlers.
+   */
+  isMultiTenant: boolean
+  /**
+   * Specifies whether separate databases or a shared database is used in multi-tenant mode.
+   * `shouldPrefixTable` is true for a shared database (adds table prefix), false for separate databases.
+   */
+  shouldPrefixTable: boolean
+  manifestFiles: string[]
   paths: {
+    /**
+     * The path to the manifest file.
+     * This is used to load the manifest and generate the types.
+     */
+    manifestFile: string
     /**
      * The folder where the admin panel is built.
      */
@@ -25,15 +45,15 @@ export default (): {
      */
     publicFolder: string
     /**
-     * The path to the manifest file.
-     * This is used to load the manifest and generate the types.
-     */
-    manifestFile: string
-    /**
      * The root folder of the project.
      * This is used to resolve relative paths in the project.
      */
     projectRoot: string
+    /**
+     * The folder where the manifest are stored.
+     * This is used for storing all manifests.
+     */
+    manifestFolder: string
     /**
      * The folder where the generated files are stored.
      * This is used for storing the database, openapi spec and types.
@@ -46,7 +66,8 @@ export default (): {
     handlersFolder: string
   }
   database: {
-    sqlite: SqliteConnectionOptions
+    connection: string
+    sqlite: (manifestFolder?: string) => SqliteConnectionOptions
     postgres: PostgresConnectionOptions
     mysql: MysqlConnectionOptions
   }
@@ -66,6 +87,8 @@ export default (): {
         ? `${process.cwd()}/e2e/manifest`
         : process.cwd()
   const generatedFolder: string = path.join(projectRoot, GENERATED_FOLDER_PATH)
+  const manifestFolder: string =
+    process.env.MANIFEST_FOLDER || path.join(projectRoot, 'manifests')
 
   return {
     // General configuration.
@@ -78,8 +101,17 @@ export default (): {
     showOpenApiDocs:
       process.env.OPEN_API_DOCS === 'true' ||
       process.env.NODE_ENV !== 'production',
-
+    hideAdminPanel: process.env.HIDE_ADMIN_PANEL === 'true',
+    isMultiTenant:
+      process.env.SHOULD_PREFIX_TABLE === 'true' ||
+      process.env.IS_MULTI_TENANT === 'true',
+    shouldPrefixTable: process.env.SHOULD_PREFIX_TABLE === 'true',
+    manifestFiles: collectManifests(manifestFolder).map((manifestId) =>
+      path.join(manifestFolder, manifestId, 'manifest.yml')
+    ),
     paths: {
+      manifestFile:
+        process.env.MANIFEST_FILE_PATH || `${projectRoot}/manifest.yml`,
       adminPanelFolder:
         process.env.NODE_ENV === 'contribution'
           ? path.join(process.cwd(), '..', 'admin', 'dist')
@@ -87,14 +119,16 @@ export default (): {
       publicFolder: process.env.PUBLIC_FOLDER || `${projectRoot}/public`,
       projectRoot: projectRoot,
       generatedFolder: generatedFolder,
-      manifestFile:
-        process.env.MANIFEST_FILE_PATH || `${projectRoot}/manifest.yml`,
       handlersFolder:
         process.env.MANIFEST_HANDLERS_FOLDER ||
-        path.join(projectRoot, 'handlers')
+        path.join(projectRoot, 'handlers'),
+      manifestFolder: manifestFolder
     },
     database: {
-      sqlite: getSqliteConnectionOptions(generatedFolder),
+      connection:
+        process.env.NEON_DB === 'true' ? 'postgres' : process.env.DB_CONNECTION,
+      sqlite: (manifestFolder?: string) =>
+        getSqliteConnectionOptions(generatedFolder, manifestFolder),
       postgres: getPostgresConnectionOptions(),
       mysql: getMysqlConnectionOptions()
     },
@@ -109,18 +143,38 @@ export default (): {
   }
 }
 
+function collectManifests(manifestFolder: string): string[] {
+  if (!fs.existsSync(manifestFolder))
+    fs.mkdirSync(manifestFolder, { recursive: true })
+
+  return fs.readdirSync(manifestFolder)
+}
+
 function getSqliteConnectionOptions(
-  generatedFolder: string
+  generatedFolder: string,
+  manifestFolder?: string
 ): SqliteConnectionOptions {
   return {
     type: 'sqlite',
-    database: process.env.DB_PATH || `${generatedFolder}/db.sqlite`,
+    database:
+      process.env.DB_PATH || manifestFolder
+        ? path.join(generatedFolder, manifestFolder, 'db.sqlite')
+        : path.join(generatedFolder, 'db.sqlite'),
     dropSchema: process.env.DB_DROP_SCHEMA === 'true' || false,
     synchronize: true
   }
 }
 
 function getPostgresConnectionOptions(): PostgresConnectionOptions {
+  if (process.env.NEON_DB === 'true')
+    return {
+      type: 'postgres',
+      url: process.env.NEON_DB_URL,
+      ssl: true,
+      dropSchema: process.env.DB_DROP_SCHEMA === 'true' || false,
+      synchronize: true
+    }
+
   return {
     type: 'postgres',
     host: process.env.DB_HOST || 'localhost',

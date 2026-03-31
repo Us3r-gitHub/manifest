@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common'
+import { MiddlewareConsumer, Module, forwardRef } from '@nestjs/common'
 
 import { EntityModule } from '../entity/entity.module'
 import { AuthController } from './auth.controller'
@@ -6,6 +6,7 @@ import { AuthService } from './auth.service'
 import { ManifestModule } from '../manifest/manifest.module'
 import { DatabaseService } from '../crud/services/database.service'
 import { CrudModule } from '../crud/crud.module'
+import { MatchEntityMiddleware } from '../middleware/match-entity.middleware'
 
 @Module({
   imports: [
@@ -17,4 +18,8 @@ import { CrudModule } from '../crud/crud.module'
   providers: [AuthService, DatabaseService],
   exports: [AuthService]
 })
-export class AuthModule {}
+export class AuthModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MatchEntityMiddleware).forRoutes(AuthController)
+  }
+}

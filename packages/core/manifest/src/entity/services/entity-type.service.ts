@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { ManifestService } from '../../manifest/services/manifest.service'
 import {
   AppManifest,
@@ -15,10 +16,14 @@ import {
   PropertyTsTypeInfo
 } from '../types/entity-ts-type-info'
 import { getDtoPropertyNameFromRelationship } from '../../../../common/src'
+import { normalizeEntities } from '../utils/normalize-entities.utils'
 
 @Injectable()
 export class EntityTypeService {
-  constructor(private readonly manifestService: ManifestService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly manifestService: ManifestService
+  ) {}
   /**
    * Generates the entity types based on the application manifest.
    *
@@ -26,23 +31,28 @@ export class EntityTypeService {
    * @returns An array of EntityTypeInfo objects, each representing an entity type.
    */
   generateEntityTypeInfos(): EntityTsTypeInfo[] {
-    const appManifest: AppManifest = this.manifestService.getAppManifest()
+    const appManifest: AppManifest = this.manifestService.getAppManifest({
+      fullVersion: true
+    })
+    const manifestId = this.manifestService.getManifestId()
 
     const entityTsTypeInfos: EntityTsTypeInfo[] = []
 
+    const entities = normalizeEntities(appManifest.entities, manifestId)
+
     // Generate entity TS type.
-    Object.values(appManifest.entities).map((entity) =>
+    Object.values(entities).map((entity) =>
       entityTsTypeInfos.push(this.generateEntityTypeInfoFromManifest(entity))
     )
 
     // Generate CreateDTO TS type.
-    Object.values(appManifest.entities)
+    Object.values(entities)
       .filter((entity) => !entity.nested) // Nested entities cannot be created directly.
-      .map((entity) => {
+      .map((entity) =>
         entityTsTypeInfos.push(
           this.generateCreateDtoTypeInfoFromManifest(entity)
         )
-      })
+      )
 
     return entityTsTypeInfos
   }

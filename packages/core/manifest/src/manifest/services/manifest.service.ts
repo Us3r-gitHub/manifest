@@ -10,7 +10,11 @@ import {
   AppEnvironment
 } from '@repo/types'
 
-import { ADMIN_ENTITY_MANIFEST } from '../../constants'
+import {
+  ADMIN_ENTITY_MANIFEST,
+  AUTHENTICABLE_PROPS,
+  TENANT_PROPS
+} from '../../constants'
 import { EntityManifestService } from './entity-manifest.service'
 import { EndpointService } from '../../endpoint/endpoint.service'
 import { ConfigService } from '@nestjs/config'
@@ -18,7 +22,8 @@ import { LockFileService } from './lock-file.service'
 
 @Injectable()
 export class ManifestService {
-  private appManifest: AppManifest
+  private manifestId: string = 'manifest'
+  private appManifests: Record<string, AppManifest> = {}
   private loadingPromise: Promise<AppManifest> | null = null
 
   constructor(
@@ -31,6 +36,14 @@ export class ManifestService {
     private readonly lockFileService: LockFileService
   ) {}
 
+  getManifestId(): string {
+    return this.manifestId
+  }
+
+  setManifestId(manifestId: string): void {
+    this.manifestId = manifestId
+  }
+
   /**
    * Get the manifest.
    *
@@ -40,15 +53,15 @@ export class ManifestService {
    *
    **/
   getAppManifest(options?: { fullVersion?: boolean }): AppManifest {
-    if (!this.appManifest) {
+    if (!this.appManifests[this.manifestId]) {
       throw new Error('Manifest not loaded')
     }
 
     if (!options?.fullVersion) {
-      return this.hideSensitiveInformation(this.appManifest)
+      return this.hideSensitiveInformation(this.appManifests[this.manifestId])
     }
 
-    return this.appManifest
+    return this.appManifests[this.manifestId]
   }
 
   /**
@@ -80,6 +93,8 @@ export class ManifestService {
 
     this.schemaService.validate(appSchema)
 
+    const shouldPrefixTable = this.configService.get('shouldPrefixTable')
+
     const appManifest: AppManifest = {
       name: appSchema.name || 'Manifest App',
       version: appSchema.version || '1.0.0',
@@ -89,7 +104,8 @@ export class ManifestService {
       entities: this.entityManifestService
         .transformEntityManifests({
           entities: appSchema.entities || {},
-          groups: appSchema.groups || {}
+          groups: appSchema.groups || {},
+          prefix: shouldPrefixTable ? this.manifestId : undefined
         })
         .reduce((acc, entityManifest: EntityManifest) => {
           acc[entityManifest.className] = entityManifest
@@ -107,11 +123,16 @@ export class ManifestService {
     }
 
     // Add Admin entity.
-    appManifest.entities.Admin = ADMIN_ENTITY_MANIFEST
+    appManifest.entities.Admin = shouldPrefixTable
+      ? {
+          ...ADMIN_ENTITY_MANIFEST,
+          properties: [...AUTHENTICABLE_PROPS, ...TENANT_PROPS]
+        }
+      : ADMIN_ENTITY_MANIFEST
 
-    this.appManifest = appManifest
+    this.appManifests[this.manifestId] = appManifest
 
-    return this.appManifest
+    return appManifest
   }
 
   /**

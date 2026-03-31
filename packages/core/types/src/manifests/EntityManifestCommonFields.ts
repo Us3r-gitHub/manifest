@@ -7,6 +7,7 @@ export interface EntityManifestCommonFields
     EntityManifest,
     | 'className'
     | 'nameSingular'
+    | 'namePlural'
     | 'slug'
     | 'single'
     | 'properties'

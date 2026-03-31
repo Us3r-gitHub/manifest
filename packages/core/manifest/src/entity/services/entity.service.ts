@@ -7,6 +7,8 @@ import { EntityManifestService } from '../../manifest/services/entity-manifest.s
 @Injectable()
 export class EntityService {
   constructor(
+    // TODO-Next: Create Dynamic Connection at runtime
+    // NOTE: https://docs.nestjs.com/fundamentals/injection-scopes
     private dataSource: DataSource,
     private entityManifestService: EntityManifestService
   ) {}

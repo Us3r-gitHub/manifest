@@ -16,54 +16,70 @@ import { Rule } from '../policy/decorators/rule.decorator'
 import { PolicyGuard } from '../policy/policy.guard'
 import { IsDbEmptyGuard } from './guards/is-db-empty.guard'
 
-@Controller('auth')
 @UseGuards(PolicyGuard)
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post(':entity/login')
+  @Post(':entitySlug/login')
   public async getToken(
-    @Param('entity') entity: string,
-    @Body() signupUserDto: SignupAuthenticableEntityDto
+    @Param('tenantId') tenantId: string,
+    @Param('entitySlug') entitySlug: string,
+    @Body() signupUserDto: SignupAuthenticableEntityDto,
+    @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.createToken(entity, signupUserDto)
+    return this.authService.createToken(req['entityTenant'] || entitySlug, {
+      ...signupUserDto,
+      tenantId
+    })
   }
 
-  @Post('admins/signup')
   @UseGuards(IsDbEmptyGuard)
+  @Post('admins/signup')
   public async signupAdmin(
+    @Param('tenantId') tenantId: string,
     @Body() signupUserDto: SignupAuthenticableEntityDto
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup('admins', signupUserDto, true)
+    return this.authService.signup(
+      'admins',
+      { ...signupUserDto, tenantId },
+      true
+    )
   }
 
-  @Post(':entity/signup')
   @Rule('signup')
+  @Post(':entitySlug/signup')
   public async signup(
-    @Param('entity') entity: string,
-    @Body() signupUserDto: SignupAuthenticableEntityDto
+    @Param('tenantId') tenantId: string,
+    @Param('entitySlug') entitySlug: string,
+    @Body() signupUserDto: SignupAuthenticableEntityDto,
+    @Req() req: Request
   ): Promise<{
     token: string
   }> {
-    return this.authService.signup(entity, signupUserDto)
+    return this.authService.signup(req['entityTenant'] || entitySlug, {
+      ...signupUserDto,
+      tenantId
+    })
   }
 
-  @Get(':entity/me')
+  @Get(':entitySlug/me')
   public async getCurrentUser(
-    @Param('entity') _entity: string,
     @Req() req: Request
   ): Promise<AuthenticableEntity> {
     return (await this.authService.getUserFromRequest(req)).user
   }
 
   @Get('admins/default-exists')
-  public async isDefaultAdminExists(): Promise<{
+  public async isDefaultAdminExists(
+    @Param('tenantId') tenantId: string
+  ): Promise<{
     exists: boolean
   }> {
-    return this.authService.isDefaultAdminExists()
+    return this.authService.isDefaultAdminExists(tenantId)
   }
 }

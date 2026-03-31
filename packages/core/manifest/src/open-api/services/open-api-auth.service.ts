@@ -8,21 +8,21 @@ import { ADMIN_ENTITY_MANIFEST } from '../../constants'
 
 @Injectable()
 export class OpenApiAuthService {
+  constructor() {}
   /**
    * Generates the paths for the OpenAPI spec: Login, signup ang get current user for authenticable entities.
    *
-   * @param appManifest The manifest of the application.
-   *
+   * @param entityManifests The entity manifests.
    * @returns The paths.
    *
    */
-  generateAuthPaths(appManifest: AppManifest): Record<string, PathItemObject> {
+  generateAuthPaths(
+    entityManifests: EntityManifest[]
+  ): Record<string, PathItemObject> {
     const paths: Record<string, PathItemObject> = {}
 
     // Authenticable entities and admins.
-    const authenticableEntities: EntityManifest[] = Object.values(
-      appManifest.entities as Record<string, EntityManifest>
-    )
+    const authenticableEntities: EntityManifest[] = entityManifests
       .filter((entity: EntityManifest) => entity.authenticable)
       .concat(ADMIN_ENTITY_MANIFEST)
 

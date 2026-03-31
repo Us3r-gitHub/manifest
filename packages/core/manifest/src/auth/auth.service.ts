@@ -19,6 +19,14 @@ export class AuthService {
     private readonly entityManifestService: EntityManifestService,
     private readonly crudService: CrudService
   ) {}
+
+  includeTenantId(entitySlug: string) {
+    return (
+      this.configService.get('shouldPrefixTable') &&
+      entitySlug === ADMIN_ENTITY_MANIFEST.slug
+    )
+  }
+
   /**
    * Creates a JWT token for a user. This user can be of any entity that extends AuthenticableEntity.
    *
@@ -26,6 +34,7 @@ export class AuthService {
    * @param signupUserDto The DTO with the email and password of the user
    * @param email The email of the user
    * @param password The password of the user
+   * @param tenantId The tenantId of the user (multi-tenant Mode)
    *
    * @returns A JWT token
    */
@@ -47,10 +56,13 @@ export class AuthService {
       )
     }
 
+    const { email, password, tenantId } = signupUserDto
+
     const user = await this.findUserFromCredentials(
       entitySlug,
-      signupUserDto.email,
-      signupUserDto.password
+      email,
+      password,
+      this.includeTenantId(entitySlug) ? tenantId : undefined
     )
 
     if (!user) {
@@ -61,7 +73,7 @@ export class AuthService {
     }
     return {
       token: jwt.sign(
-        { email: signupUserDto.email, entitySlug },
+        { email, entitySlug, tenantId },
         this.configService.get('tokenSecretKey')
       )
     }
@@ -74,6 +86,7 @@ export class AuthService {
    * @param entitySlug The slug of the AuthenticableEntity where the user is going to be created
    * @param email The email of the user
    * @param password The password of the user
+   * @param tenantId The tenantId of the user (multi-tenant Mode)
    * @param byPassAdminCheck If true, the method will not check if the entity is an admin
    *
    * @returns A JWT token of the created user
@@ -82,7 +95,7 @@ export class AuthService {
   async signup(
     entitySlug: string,
     signupUserDto: SignupAuthenticableEntityDto,
-    byPassAdminCheck = false
+    byPassAdminCheck?: boolean
   ): Promise<{ token: string }> {
     if (entitySlug === ADMIN_ENTITY_MANIFEST.slug && !byPassAdminCheck) {
       throw new HttpException(
@@ -103,15 +116,15 @@ export class AuthService {
       )
     }
 
-    const savedUser: AuthenticableEntity = (await this.crudService.store(
+    const userDto = signupUserDto as AuthenticableEntity
+    if (this.includeTenantId(entitySlug))
+      userDto['tenantId'] = signupUserDto.tenantId
+    const savedUser = (await this.crudService.store(
       entitySlug,
-      signupUserDto as Partial<AuthenticableEntity>
+      userDto
     )) as AuthenticableEntity
 
-    return this.createToken(entitySlug, {
-      email: savedUser.email,
-      password: signupUserDto.password
-    })
+    return this.createToken(entitySlug, savedUser)
   }
 
   /**
@@ -126,7 +139,11 @@ export class AuthService {
   async getUserFromToken(
     token: string
   ): Promise<{ user: AuthenticableEntity; entitySlug: string }> {
-    let decoded: jwt.JwtPayload<{ email: string; entitySlug: string }>
+    let decoded: jwt.JwtPayload<{
+      email: string
+      entitySlug: string
+      tenantId?: string
+    }>
     try {
       decoded = jwt.verify(
         token?.replace('Bearer ', ''),
@@ -139,20 +156,24 @@ export class AuthService {
       return Promise.resolve({ user: null, entitySlug: null })
     }
 
+    const { email, entitySlug, tenantId } = decoded
+
     const entityRepository: Repository<AuthenticableEntity> =
       this.entityService.getEntityRepository({
-        entitySlug: decoded.entitySlug
+        entitySlug
       }) as Repository<AuthenticableEntity>
 
+    const whereClause =
+      this.includeTenantId(entitySlug) && tenantId
+        ? { email, tenantId }
+        : { email }
     const user = await entityRepository.findOne({
-      where: {
-        email: decoded.email
-      }
+      where: whereClause
     })
 
     delete user.password // Remove password from the user object for security reasons
 
-    return { user, entitySlug: decoded.entitySlug }
+    return { user, entitySlug }
   }
 
   /**
@@ -193,11 +214,12 @@ export class AuthService {
    *
    * @returns A promise that resolves to an object with the key 'exists' that is true if the default admin exists, and false otherwise.
    * */
-  async isDefaultAdminExists(): Promise<{ exists: boolean }> {
+  async isDefaultAdminExists(tenantId?: string): Promise<{ exists: boolean }> {
     const admin: AuthenticableEntity = await this.findUserFromCredentials(
       ADMIN_ENTITY_MANIFEST.slug,
       DEFAULT_ADMIN_CREDENTIALS.email,
-      DEFAULT_ADMIN_CREDENTIALS.password
+      DEFAULT_ADMIN_CREDENTIALS.password,
+      this.includeTenantId(ADMIN_ENTITY_MANIFEST.slug) ? tenantId : undefined
     )
 
     return { exists: !!admin }
@@ -209,23 +231,24 @@ export class AuthService {
    * @param entitySlug The slug of the entity where the user is going to be searched
    * @param email The email of the user
    * @param password The password of the user
+   * @param tenantId The tenantId for multi-tenant apps within 1 DB
    *
    * @returns The user found from the credentials, or null if the user is not found.
    */
   async findUserFromCredentials(
     entitySlug: string,
     email: string,
-    password: string
+    password: string,
+    tenantId?: string
   ): Promise<AuthenticableEntity> {
     const entityRepository: Repository<AuthenticableEntity> =
       this.entityService.getEntityRepository({
         entitySlug
       }) as Repository<AuthenticableEntity>
 
+    const whereClause = tenantId ? { email, tenantId } : { email }
     const user: AuthenticableEntity = await entityRepository.findOne({
-      where: {
-        email
-      }
+      where: whereClause
     })
 
     if (!user || !bcrypt.compareSync(password, user.password)) {

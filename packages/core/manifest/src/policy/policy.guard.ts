@@ -34,10 +34,10 @@ export class PolicyGuard implements CanActivate {
     } else {
       routePolicies = await this.getCrudPolicies(
         rule,
-        context.getArgs()[0].params.entity
+        request['entityTenant'] || context.getArgs()[0].params.entity
       )
       entityManifest = this.entityManifestService.getEntityManifest({
-        slug: context.getArgs()[0].params.entity
+        slug: request['entityTenant'] || context.getArgs()[0].params.entity
       })
     }
 
